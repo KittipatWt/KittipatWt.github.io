@@ -222,3 +222,47 @@ pre, pre code, kbd, samp, .code-head, .hljs { font-family: var(--font-code); }
 .step .scroll-x, .sim .scroll-x, .sim .ht-stage { max-width: 100%; }
 article { overflow-wrap: break-word; }
 .grid2.stack { grid-template-columns: 1fr; }
+
+/* graph simulator */
+.gview svg { width: 100%; height: auto; max-width: 560px; }
+.gedge { stroke: var(--muted); stroke-width: 1.6; opacity: .55; }
+.gedge.tree, .gedge.mst { stroke: var(--ok); stroke-width: 3.4; opacity: 1; }
+.gedge.back, .gedge.rej { stroke: var(--hole-stroke); stroke-width: 2.6; stroke-dasharray: 6 4; opacity: 1; }
+.gedge.cmp { stroke: var(--accent); stroke-width: 3.2; opacity: 1; }
+.gedge.cross { stroke-dasharray: 2 4; opacity: .75; }
+.ah { fill: var(--muted); }
+.ah.tree, .ah.mst { fill: var(--ok); }
+.ah.back, .ah.rej { fill: var(--hole-stroke); }
+.ah.cmp { fill: var(--accent); }
+.gw { fill: var(--muted); font-size: 13px; text-anchor: middle; dominant-baseline: central; font-family: var(--font-code); }
+.gw.tree, .gw.mst, .gw.cmp, .gw.rej, .gw.back { fill: var(--text); font-weight: 700; }
+.gnode circle { fill: var(--node); stroke: var(--node-stroke); stroke-width: 1.8; }
+.gnode text { fill: var(--text); font-size: 14px; text-anchor: middle; dominant-baseline: central; font-family: var(--font-code); }
+.gnode.q circle { fill: var(--cmp); }
+.gnode.done circle { fill: var(--done); }
+.gnode.cur circle { fill: var(--accent); stroke: var(--hole-stroke); stroke-width: 2.6; }
+.gnode.cur text { fill: #1b1b1b; }
+.gnode text.gsub { fill: var(--accent); font-weight: 700; font-size: 14px; }
+.gpanels { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 8px; }
+.gpanel { min-width: 0; font-size: .92rem; }
+.gpanel h4 { margin: 6px 0 4px; color: var(--accent); font-size: .95rem; }
+.gtab { font-size: .85rem; margin: 4px 0; }
+.gtab th, .gtab td { padding: 3px 8px !important; }
+.legend-line { display: inline-block; margin: 2px 10px 2px 0; padding: 0 8px; border-left: 4px solid var(--muted); font-size: .85rem; }
+.legend-line.tree { border-color: var(--ok); }
+.legend-line.back { border-color: var(--hole-stroke); }
+.dsu-tree svg, .maze svg { width: 100%; height: auto; max-width: 640px; }
+.dtree line { stroke: var(--node-stroke); stroke-width: 1.4; opacity: .6; }
+.dtree circle { fill: var(--node); stroke: var(--node-stroke); stroke-width: 1.6; }
+.dtree text { fill: var(--text); font-size: 14px; text-anchor: middle; dominant-baseline: central; font-family: var(--font-code); }
+.dtree .cmp circle { fill: var(--cmp); }
+.dtree .done circle { fill: var(--done); }
+.dtree .swap circle { fill: var(--hole); stroke: var(--hole-stroke); }
+.dtree .root circle { stroke-width: 3; }
+.mz-cell { fill: var(--surface); stroke: none; }
+.mz-cell.a { fill: var(--cmp); }
+.mz-cell.b { fill: var(--cmp); }
+.mz-wall { stroke: var(--text); stroke-width: 3; stroke-linecap: round; }
+.mz-wall.ok { stroke: var(--ok); stroke-width: 4; stroke-dasharray: 5 4; }
+.mz-wall.no { stroke: var(--hole-stroke); stroke-width: 4; }
+.mz-t { fill: var(--muted); font-size: 13px; text-anchor: middle; dominant-baseline: central; font-family: var(--font-code); }

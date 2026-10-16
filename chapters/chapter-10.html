@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>บทที่ 10 Sorting | 204252 Final</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+<nav class="topbar">
+  <a href="../index.html">204252 Final</a><span class="sep">/</span><span class="crumb">บทที่ 10 Sorting</span>
+</nav>
+
+<div class="layout">
+  <aside class="toc"><ol id="toc-list">
+    <li><a href="#intro">1. ปัญหาการเรียงลำดับ &amp; Stability</a></li>
+    <li><a href="#selection">2. Selection Sort</a></li>
+    <li><a href="#insertion">3. Insertion Sort</a></li>
+    <li><a href="#merge">4. Merge Sort</a></li>
+    <li><a href="#quick">5. Quicksort</a></li>
+    <li><a href="#heap">6. Heapsort</a></li>
+    <li><a href="#lower">7. Lower Bound ของ Comparison Sort</a></li>
+    <li><a href="#linear">8. Sorting แบบ Linear Time</a></li>
+    <li><a href="#sim">9. Simulation</a></li>
+    <li><a href="#summary">10. สรุป &amp; แบบฝึกหัด</a></li>
+  </ol></aside>
+
+  <article>
+    <h1>บทที่ 10: Sorting</h1>
+    <p class="subtitle">204252 Data Structures and Analysis · อ้างอิงสไลด์ Part 1–2</p>
+
+    <!-- ===================== 1 ===================== -->
+    <h2 id="intro">1. ปัญหาการเรียงลำดับ &amp; Stability</h2>
+    <h3>1.1 นิยาม</h3>
+    <ul>
+      <li><b>Input:</b> ลำดับของ record <i>N</i> ตัว ⟨a₁, a₂, …, a<sub>N</sub>⟩</li>
+      <li><b>Output:</b> permutation ⟨a′₁, …, a′<sub>N</sub>⟩ ของอินพุต ที่ a′₁ ≤ a′₂ ≤ … ≤ a′<sub>N</sub></li>
+      <li>ข้อมูลเก็บใน array หรือ list · key เปรียบเทียบได้ (มี strict weak ordering คือนิยาม <code>&lt;</code>)</li>
+      <li>เน้น <b>Internal Sorting</b> — เรียงในหน่วยความจำหลัก (โดยทั่วไป N &lt; 10⁷)</li>
+    </ul>
+
+    <h3>1.2 Comparison Model</h3>
+    <p>วิธีเดียวที่ใช้ได้เพื่อรู้ลำดับของ element คือ <b>เปรียบเทียบทีละคู่</b> (aᵢ &lt; aⱼ, aᵢ ≤ aⱼ …) — ห้ามดูค่าไบนารีภายในของ key (ไม่มี bitwise หรือ hashing) ภายใต้โมเดลนี้ algorithm ใดๆ มี lower bound กรณีเลวร้ายที่สุดเป็น <b>Ω(N log N)</b> การเปรียบเทียบ (พิสูจน์ในหัวข้อ 7)</p>
+
+    <h3>1.3 Stability</h3>
+    <p>Sorting algorithm เป็น <b>stable</b> ถ้ารักษาลำดับสัมพัทธ์เดิมของ record ที่มี key เท่ากัน: ถ้า key(aᵢ) = key(aⱼ) และ aᵢ อยู่ก่อน aⱼ ในอินพุต aᵢ ต้องอยู่ก่อน aⱼ ในผลลัพธ์</p>
+    <p><b>ทำไมสำคัญ:</b> ใช้เรียงหลาย key (multi-key sort) เช่น เรียงรายชื่อนักศึกษาตามชื่อก่อน แล้วค่อยเรียงตามนามสกุล — ถ้า stable คนที่นามสกุลเดียวกันจะยังเรียงตามชื่ออยู่</p>
+    <div class="scroll-x"><table class="arr">
+      <tr><th>อินพุต</th><td>8</td><td>5<sub>a</sub></td><td>2</td><td>5<sub>b</sub></td></tr>
+      <tr><th>Stable</th><td>2</td><td class="done">5<sub>a</sub></td><td class="done">5<sub>b</sub></td><td>8</td></tr>
+      <tr><th>Unstable</th><td>2</td><td class="hole">5<sub>b</sub></td><td class="hole">5<sub>a</sub></td><td>8</td></tr>
+    </table></div>
+
+    <!-- ===================== 2 ===================== -->
+    <h2 id="selection">2. Selection Sort</h2>
+    <p>แบ่ง array เป็น <b>sorted prefix</b> กับ <b>unsorted suffix</b> แต่ละ pass สแกน suffix หาค่าน้อยสุด แล้ว <b>swap</b> เข้ากับตัวแรกของ suffix ทำให้ prefix ยาวขึ้น 1</p>
+    <ul>
+      <li>ใช้ swap เพียง <b>O(N)</b> ครั้ง</li>
+      <li>เวลาไม่ขึ้นกับลำดับของอินพุต — <b>Θ(N²)</b> เสมอ</li>
+      <li><b>Unstable</b></li>
+    </ul>
+    <div class="code"><div class="code-head"><span>C++ · selectionSort</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename Comparable&gt;
+void selectionSort(vector&lt;Comparable&gt; &amp; a) {
+    for (size_t i = 0; i &lt; a.size() - 1; ++i) {
+        size_t min_idx = i;
+        // หาค่าน้อยสุดใน unsorted suffix
+        for (size_t j = i + 1; j &lt; a.size(); ++j) {
+            if (a[j] &lt; a[min_idx]) {
+                min_idx = j;
+            }
+        }
+        // swap กับตัวแรกของ unsorted suffix
+        if (min_idx != i) {
+            std::swap(a[i], a[min_idx]);
+        }
+    }
+}</code></pre></div>
+    <h4>ตัวอย่าง: [5<sub>a</sub>, 3, 8, 2, 5<sub>b</sub>]</h4>
+    <ol>
+      <li>Pass 0: min = 2 → swap กับ 5<sub>a</sub> → <code>[2, 3, 8, 5a, 5b]</code></li>
+      <li>Pass 1: min = 3 อยู่ที่ index 1 แล้ว → ไม่ swap</li>
+      <li>Pass 2: min ของ [8, 5a, 5b] = 5<sub>a</sub> → swap กับ 8 → <code>[2, 3, 5a, 8, 5b]</code></li>
+      <li>Pass 3: min ของ [8, 5b] = 5<sub>b</sub> → swap → <code>[2, 3, 5a, 5b, 8]</code></li>
+    </ol>
+    <h4>ทำไมถึง unstable? ตัวอย่างค้าน: [2<sub>a</sub>, 2<sub>b</sub>, 1]</h4>
+    <p>Pass 0 หา min = 1 → swap กับ 2<sub>a</sub> (ตัวแรก) → <code>[1, 2b, 2a]</code> → <b>2<sub>a</sub> กับ 2<sub>b</sub> สลับลำดับกัน!</b> (ลองใน <a href="#sim">Simulation</a>: ใส่ 2, 2, 1)</p>
+    <h4>Complexity</h4>
+    <ul>
+      <li><b>Comparisons:</b> (N−1) + (N−2) + … + 1 = <b>N(N−1)/2</b> เสมอ → Θ(N²) ทั้ง best / worst / average</li>
+      <li><b>Swaps:</b> ไม่เกิน N−1 ครั้ง → Θ(N) · ได้เปรียบเมื่อการ swap record แพงมาก เพราะเขียนกลับหน่วยความจำน้อยที่สุดในกลุ่ม quadratic sort</li>
+    </ul>
+
+    <!-- ===================== 3 ===================== -->
+    <h2 id="insertion">3. Insertion Sort</h2>
+    <p>มี N−1 pass (p = 1 ถึง N−1) · ก่อน pass p ถือว่า index 0..p−1 <b>เรียงแล้ว</b> · หยิบ <code>tmp = a[p]</code> เลื่อนไปทางซ้ายจนเจอตำแหน่งที่ถูกต้อง โดยเลื่อนตัวที่ใหญ่กว่าไปทางขวาเพื่อเปิด hole ให้ tmp</p>
+    <ul>
+      <li>ง่ายและมีประสิทธิภาพกับ array ขนาดเล็ก</li>
+      <li><b>Adaptive:</b> ข้อมูลเรียงอยู่แล้วใช้เวลา <b>O(N)</b></li>
+      <li><b>Stable</b></li>
+    </ul>
+    <div class="code"><div class="code-head"><span>C++ · insertionSort (Weiss Figure 7.2)</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename Comparable&gt;
+void insertionSort( vector&lt;Comparable&gt; &amp; a ) {
+    for( int p = 1; p &lt; a.size( ); ++p ) {
+        Comparable tmp = std::move( a[p] );
+        int j;
+        for( j = p; j &gt; 0 &amp;&amp; tmp &lt; a[j - 1]; --j ) {
+            a[j] = std::move( a[j - 1] );
+        }
+        a[j] = std::move( tmp );
+    }
+}</code></pre></div>
+    <h4>ตัวอย่าง: [34, 8, 64, 51, 32, 21]</h4>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Pass</th><th>การทำงาน</th><th>ผล (prefix ที่เรียงแล้ว)</th></tr>
+      <tr><td>1</td><td>แทรก 8 → shift 34</td><td>[8, 34 | 64, 51, 32, 21]</td></tr>
+      <tr><td>2</td><td>แทรก 64 → ไม่ shift (64 &gt; 34)</td><td>[8, 34, 64 | 51, 32, 21]</td></tr>
+      <tr><td>3</td><td>แทรก 51 → shift 64</td><td>[8, 34, 51, 64 | 32, 21]</td></tr>
+      <tr><td>4</td><td>แทรก 32 → shift 64, 51, 34</td><td>[8, 32, 34, 51, 64 | 21]</td></tr>
+      <tr><td>5</td><td>แทรก 21 → shift 64, 51, 34, 32</td><td>[8, 21, 32, 34, 51, 64]</td></tr>
+    </table></div>
+    <h4>Complexity</h4>
+    <ul>
+      <li><b>Worst:</b> อินพุตเรียงย้อน → inner loop ทำ p ครั้งในแต่ละ p → Σp = N(N−1)/2 = <b>O(N²)</b></li>
+      <li><b>Best:</b> อินพุตเรียงแล้ว → เงื่อนไข <code>tmp &lt; a[j-1]</code> เป็นเท็จทันที → <b>O(N)</b> เทียบ ไม่มี shift</li>
+      <li><b>Average:</b> Θ(N²)</li>
+    </ul>
+    <h3>3.1 Inversion</h3>
+    <p><b>Inversion</b> คือคู่ (i, j) ที่ i &lt; j แต่ a[i] &gt; a[j] · การ shift แต่ละครั้งของ insertion sort <b>ลบ inversion ได้พอดี 1 คู่</b> จึงใช้เวลา <b>O(I + N)</b> เมื่อ I คือจำนวน inversion</p>
+    <div class="callout"><strong class="t">Theorem: จำนวน inversion เฉลี่ย</strong>
+      ของ array ที่ไม่เรียง N ตัวที่ต่างกัน คือ <b>I<sub>avg</sub> = N(N−1)/4</b>
+    </div>
+    <details><summary>พิสูจน์</summary>
+      ให้ L เป็นลิสต์ใดๆ และ L<sup>r</sup> คือลิสต์กลับด้าน (เช่น L = [3, 4, 1, 5, 2], L<sup>r</sup> = [2, 5, 1, 4, 3]) · คู่ (x, y) ใดๆ เป็น inversion ใน L หรือ L<sup>r</sup> <b>อย่างใดอย่างหนึ่งเท่านั้น</b> · จำนวนคู่ทั้งหมดคือ N(N−1)/2 ดังนั้นผลรวม inversion ของ L กับ L<sup>r</sup> = N(N−1)/2 · โดยสมมาตร ลิสต์สุ่มมี inversion เฉลี่ยครึ่งหนึ่ง = <b>N(N−1)/4 = Θ(N²)</b> ∎
+    </details>
+    <div class="callout warn"><strong class="t">Corollary</strong>
+      algorithm ใดๆ ที่ swap ได้แต่ element <b>ที่อยู่ติดกัน</b> ต้องใช้เวลาเฉลี่ย <b>Ω(N²)</b> (เพราะแต่ละ swap ลด inversion ได้อย่างมาก 1)
+    </div>
+
+    <!-- ===================== 4 ===================== -->
+    <h2 id="merge">4. Merge Sort</h2>
+    <p>Divide-and-Conquer: <b>แบ่ง</b> array เป็น 2 ส่วนเท่าๆ กัน → <b>เรียง</b> แต่ละส่วนแบบ recursive → <b>merge</b> สองส่วนที่เรียงแล้วเป็น array เดียว</p>
+    <ul>
+      <li><b>Merge:</b> รวม subarray ที่เรียงแล้ว 2 ชุดใน <b>O(N)</b> ต้องใช้ array ชั่วคราวขนาด N</li>
+      <li>เทียบสมาชิกหัวของทั้งสองฝั่ง คัดลอกตัวที่เล็กกว่าแล้วขยับ pointer</li>
+    </ul>
+    <div class="code"><div class="code-head"><span>C++ · mergeSort driver + recursion</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">// Public driver
+template &lt;typename Comparable&gt;
+void mergeSort( vector&lt;Comparable&gt; &amp; a ) {
+    vector&lt;Comparable&gt; tmpArray( a.size( ) );
+    mergeSort( a, tmpArray, 0, a.size( ) - 1 );
+}
+
+// Internal recursive method
+template &lt;typename Comparable&gt;
+void mergeSort( vector&lt;Comparable&gt; &amp; a, vector&lt;Comparable&gt; &amp; tmpArray,
+                int left, int right ) {
+    if( left &lt; right ) {
+        int center = ( left + right ) / 2;
+        mergeSort( a, tmpArray, left, center );
+        mergeSort( a, tmpArray, center + 1, right );
+        merge( a, tmpArray, left, center + 1, right );
+    }
+}</code></pre></div>
+    <div class="code"><div class="code-head"><span>C++ · merge</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename Comparable&gt;
+void merge( vector&lt;Comparable&gt; &amp; a, vector&lt;Comparable&gt; &amp; tmpArray,
+            int leftPos, int rightPos, int rightEnd ) {
+    int leftEnd = rightPos - 1;
+    int tmpPos = leftPos;
+    int numElements = rightEnd - leftPos + 1;
+    while( leftPos &lt;= leftEnd &amp;&amp; rightPos &lt;= rightEnd )
+        if( a[ leftPos ] &lt;= a[ rightPos ] )
+            tmpArray[ tmpPos++ ] = std::move( a[ leftPos++ ] );
+        else
+            tmpArray[ tmpPos++ ] = std::move( a[ rightPos++ ] );
+    while( leftPos &lt;= leftEnd )        // คัดลอกส่วนที่เหลือของครึ่งแรก
+        tmpArray[ tmpPos++ ] = std::move( a[ leftPos++ ] );
+    while( rightPos &lt;= rightEnd )      // คัดลอกส่วนที่เหลือของครึ่งหลัง
+        tmpArray[ tmpPos++ ] = std::move( a[ rightPos++ ] );
+    for( int i = 0; i &lt; numElements; ++i, --rightEnd )   // คัดลอกกลับ
+        a[ rightEnd ] = std::move( tmpArray[ rightEnd ] );
+}</code></pre></div>
+
+    <h3>4.1 Trace: [24, 13, 26, 1, 2, 27, 38, 15]</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>ระดับ</th><th>Division Tree (แบ่ง)</th><th>Conquering Tree (merge)</th></tr>
+      <tr><td>0</td><td>[24, 13, 26, 1, 2, 27, 38, 15]</td><td><b>[1, 2, 13, 15, 24, 26, 27, 38]</b></td></tr>
+      <tr><td>1</td><td>[24, 13, 26, 1] · [2, 27, 38, 15]</td><td>[1, 13, 24, 26] · [2, 15, 27, 38]</td></tr>
+      <tr><td>2</td><td>[24, 13] · [26, 1] · [2, 27] · [38, 15]</td><td>[13, 24] · [1, 26] · [2, 27] · [15, 38]</td></tr>
+      <tr><td>3</td><td>24 · 13 · 26 · 1 · 2 · 27 · 38 · 15</td><td>เหมือน division (ตัวเดี่ยว)</td></tr>
+    </table></div>
+    <h4>Merge Detail: A = [1, 13, 24, 26], B = [2, 15, 27, 38]</h4>
+    <div class="scroll-x"><table class="data">
+      <tr><th>เทียบ</th><th>ผล</th><th>Tmp</th></tr>
+      <tr><td>1 กับ 2</td><td>1 ≤ 2 → เอา 1</td><td>1</td></tr>
+      <tr><td>13 กับ 2</td><td>2 &lt; 13 → เอา 2</td><td>1, 2</td></tr>
+      <tr><td>13 กับ 15</td><td>13 ≤ 15 → เอา 13</td><td>1, 2, 13</td></tr>
+      <tr><td>24 กับ 15</td><td>15 &lt; 24 → เอา 15</td><td>1, 2, 13, 15</td></tr>
+      <tr><td>24 กับ 27</td><td>24 ≤ 27 → เอา 24</td><td>1, 2, 13, 15, 24</td></tr>
+      <tr><td>26 กับ 27</td><td>26 ≤ 27 → เอา 26</td><td>1, 2, 13, 15, 24, 26</td></tr>
+      <tr><td>A หมด</td><td>คัดลอก B ที่เหลือ (27, 38)</td><td>1, 2, 13, 15, 24, 26, 27, 38</td></tr>
+    </table></div>
+    <p>แล้วคัดลอก Tmp กลับไปยัง array เดิม</p>
+
+    <h3>4.2 วิเคราะห์ด้วย Recurrence</h3>
+    <p>สมมติ N เป็นยกกำลัง 2: <b>T(1) = 1</b> และ <b>T(N) = 2T(N/2) + N</b> (2T(N/2) = เรียงสองครึ่ง, N = merge แบบ linear)</p>
+    <h4>วิธีที่ 1: Telescoping</h4>
+    <p>หารทั้งสองข้างด้วย N: T(N)/N = T(N/2)/(N/2) + 1 · เขียนซ้ำสำหรับ N/2, N/4, …, 2: T(N/2)/(N/2) = T(N/4)/(N/4) + 1, …, T(2)/2 = T(1)/1 + 1 · บวกทุกสมการ พจน์ตรงกลางตัดกัน:</p>
+    <p style="text-align:center">T(N)/N = T(1)/1 + log N &nbsp;⟹&nbsp; <b>T(N) = N log N + N = O(N log N)</b></p>
+    <h4>วิธีที่ 2: Substitution</h4>
+    <p>T(N) = 2[2T(N/4) + N/2] + N = 4T(N/4) + 2N = 8T(N/8) + 3N = … = 2<sup>k</sup>T(N/2<sup>k</sup>) + kN · ให้ 2<sup>k</sup> = N (k = log N): T(N) = N·T(1) + N log N = <b>N log N + N = O(N log N)</b></p>
+    <div class="callout"><strong class="t">สรุป Merge Sort</strong>
+      <ul style="margin:6px 0 0">
+        <li><b>เวลา:</b> Θ(N log N) ทั้ง best / average / worst — สม่ำเสมอ ไม่ขึ้นกับลำดับอินพุต</li>
+        <li><b>Space:</b> O(N) เพิ่ม (<code>tmpArray</code>) — ข้อเสียเมื่อหน่วยความจำจำกัด</li>
+        <li><b>Stable:</b> เมื่อเท่ากันเลือกจากครึ่งซ้ายก่อน (<code>a[leftPos] &lt;= a[rightPos]</code>)</li>
+      </ul>
+    </div>
+
+    <!-- ===================== 5 ===================== -->
+    <h2 id="quick">5. Quicksort</h2>
+    <p>Divide-and-Conquer เหมือน Merge Sort แต่เรียงแบบ <b>in-place</b>:</p>
+    <ol>
+      <li><b>Divide:</b> เลือก <b>pivot</b> <i>v</i> แล้ว partition ที่เหลือเป็น S₁ = {x ≤ v} และ S₂ = {x ≥ v}</li>
+      <li><b>Conquer:</b> เรียง S₁ และ S₂ แบบ recursive</li>
+      <li><b>Combine:</b> ไม่ต้องทำอะไร — partition ทำในที่เดิม ผลคือ S₁ เรียงแล้ว, v, S₂ เรียงแล้ว ต่อกันพอดี</li>
+    </ol>
+
+    <h3>5.1 การเลือก Pivot</h3>
+    <ul>
+      <li><b>ตัวแรก (วิธีที่ผิด):</b> ถ้าอินพุตเรียงอยู่แล้วหรือกลับด้าน pivot จะเป็นค่าต่ำสุด/สูงสุดเสมอ → ฝั่งหนึ่งว่าง อีกฝั่งมี N−1 ตัว → T(N) = T(N−1) + O(N) = <b>Θ(N²)</b></li>
+      <li><b>สุ่ม:</b> ปลอดภัยกับอินพุตที่เรียงแล้ว แต่การสุ่มตัวเลขมีต้นทุนสูง</li>
+      <li><b>Median-of-Three:</b> ประมาณ median ด้วย median ของ a[left], a[center], a[right] · กำจัด worst case ของอินพุตที่เรียงแล้ว และลดการเปรียบเทียบได้ ≈ 14%</li>
+    </ul>
+    <div class="code"><div class="code-head"><span>C++ · median3</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename Comparable&gt;
+const Comparable &amp; median3( vector&lt;Comparable&gt; &amp; a, int left, int right ) {
+    int center = ( left + right ) / 2;
+    if( a[ center ] &lt; a[ left ] )
+        std::swap( a[ left ], a[ center ] );
+    if( a[ right ] &lt; a[ left ] )
+        std::swap( a[ left ], a[ right ] );
+    if( a[ right ] &lt; a[ center ] )
+        std::swap( a[ center ], a[ right ] );
+
+    // ซ่อน pivot ไว้ที่ตำแหน่ง right - 1
+    std::swap( a[ center ], a[ right - 1 ] );
+    return a[ right - 1 ];
+}</code></pre></div>
+    <p><b>ผลข้างเคียงของ median3:</b> a[left], a[center], a[right] ถูกเรียงในที่เดิม · pivot อยู่ที่ <code>a[right − 1]</code> · a[left] ทำหน้าที่เป็น <b>sentinel</b> ของ j · a[right] ≥ pivot อยู่แล้ว</p>
+
+    <h3>5.2 In-Place Partitioning</h3>
+    <p>เป้าหมาย: กลุ่ม ≤ pivot ไปทางซ้าย, ≥ pivot ไปทางขวา</p>
+    <ol>
+      <li>ตั้ง <code>i = left</code>, <code>j = right − 1</code></li>
+      <li>วนซ้ำ: เพิ่ม i ตราบที่ <code>a[i] &lt; pivot</code> · ลด j ตราบที่ <code>a[j] &gt; pivot</code> · ถ้า <code>i &lt; j</code> ให้ swap a[i], a[j] แล้วทำต่อ · ไม่เช่นนั้น break</li>
+      <li><b>คืน pivot:</b> swap a[i] กับ a[right − 1]</li>
+    </ol>
+    <div class="callout warn"><strong class="t">รายละเอียดสำคัญ: key ที่เท่ากับ pivot</strong>
+      ถ้า a[i] == pivot และ a[j] == pivot ให้ <b>หยุดทั้งสอง pointer แล้ว swap</b> — แม้จะ swap เกินความจำเป็น แต่ป้องกัน pointer วิ่งเลยและรับประกันว่า partition สมดุลเมื่อ array เต็มไปด้วย key ซ้ำ
+    </div>
+    <h3>5.3 Cutoff สำหรับ Subarray เล็ก</h3>
+    <p>สำหรับ array เล็กมาก (N ≤ 10) quicksort ช้ากว่า sort แบบง่ายอย่าง insertion sort เพราะ overhead ของการเรียกฟังก์ชัน → <b>ไม่ recursive quicksort ช่วงที่ขนาด ≤ 10 แต่เรียก insertion sort แทน</b> (เงื่อนไข: <code>right − left + 1 &lt; 10</code> ⟹ <code>left + 9 ≥ right</code>)</p>
+    <div class="code"><div class="code-head"><span>C++ · quicksort</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename Comparable&gt;
+void quicksort( vector&lt;Comparable&gt; &amp; a, int left, int right ) {
+    if( left + 10 &lt;= right ) {            // ขนาด ≥ 10: ใช้ quicksort
+        const Comparable &amp; pivot = median3( a, left, right );
+        int i = left, j = right - 1;
+        for( ; ; ) {
+            while( a[ ++i ] &lt; pivot ) { }
+            while( pivot &lt; a[ --j ] ) { }
+            if( i &lt; j )
+                std::swap( a[ i ], a[ j ] );
+            else
+                break;
+        }
+        std::swap( a[ i ], a[ right - 1 ] );   // คืน pivot
+        quicksort( a, left, i - 1 );           // เรียง S1
+        quicksort( a, i + 1, right );          // เรียง S2
+    }
+    else                                       // ขนาดเล็ก: ใช้ insertion sort
+        insertionSort( a, left, right );
+}</code></pre></div>
+
+    <h3>5.4 Trace Partition: [8, 1, 4, 9, 6, 3, 5, 2, 7, 0]</h3>
+    <p>หลัง median3 (a[left]=8, a[center]=6, a[right]=0 → เรียงเป็น 0, 6, 8 แล้วซ่อน pivot 6 ที่ index 8) ได้ <code>[0, 1, 4, 9, 7, 3, 5, 2, <b>6</b>, 8]</code> โดย i เริ่มที่ left, j เริ่มที่ right − 1</p>
+    <div class="scroll-x"><table class="data">
+      <tr><th>ขั้น</th><th>เหตุการณ์</th><th>Array</th></tr>
+      <tr><td>1</td><td>i หยุดที่ 9 (&gt; 6) · j หยุดที่ 2 (&lt; 6) → swap</td><td>0 1 4 <b>2</b> 7 3 5 <b>9</b> 6 8</td></tr>
+      <tr><td>2</td><td>i หยุดที่ 7 · j หยุดที่ 5 → swap</td><td>0 1 4 2 <b>5</b> 3 <b>7</b> 9 6 8</td></tr>
+      <tr><td>3</td><td>i ไปที่ index 6, j ถอยไป index 5 → i &gt; j <b>break</b></td><td>0 1 4 2 5 3 7 9 6 8</td></tr>
+      <tr><td>4</td><td>คืน pivot: swap a[i] (7) กับ a[right−1] (6)</td><td>0 1 4 2 5 3 <b>6</b> 9 <b>7</b> 8</td></tr>
+    </table></div>
+    <p>ผล: pivot 6 อยู่ตำแหน่งสุดท้ายถูกต้อง · S₁ ≤ 6 คือ index 0..5 · S₂ ≥ 6 คือ index 7..9 · ลองดูทีละขั้นใน <a href="#sim">Simulation</a> (Quicksort)</p>
+
+    <h3>5.5 วิเคราะห์ Complexity</h3>
+    <h4>Worst Case</h4>
+    <p>pivot เป็นค่าต่ำสุด/สูงสุดเสมอ: T(N) = T(N−1) + cN · telescoping: T(N) − T(N−1) = cN, T(N−1) − T(N−2) = c(N−1), …, T(2) − T(1) = 2c · รวมทั้งหมด T(N) = T(1) + c·Σ<sub>i=2..N</sub> i = <b>Θ(N²)</b></p>
+    <h4>Best Case</h4>
+    <p>pivot เป็น median พอดีทุกครั้ง: T(N) = 2T(N/2) + cN ⟹ <b>Θ(N log N)</b> (เหมือน Merge Sort)</p>
+    <h4>Average Case</h4>
+    <p>สมมติขนาดของ partition i (0 ถึง N−1) เกิดได้เท่าๆ กัน ความน่าจะเป็น 1/N: T(N) = (2/N)·Σ<sub>j=0..N−1</sub> T(j) + cN</p>
+    <ol>
+      <li>คูณ N: N·T(N) = 2·Σ<sub>j=0..N−1</sub> T(j) + cN² … (1)</li>
+      <li>เขียนสำหรับ N−1: (N−1)·T(N−1) = 2·Σ<sub>j=0..N−2</sub> T(j) + c(N−1)² … (2)</li>
+      <li>(1) − (2) กำจัด summation: N·T(N) − (N−1)·T(N−1) = 2T(N−1) + c(2N−1)</li>
+      <li>จัดรูปและทิ้ง −c: N·T(N) = (N+1)·T(N−1) + 2cN</li>
+      <li>หารด้วย N(N+1): T(N)/(N+1) = T(N−1)/N + 2c/(N+1)</li>
+      <li>Telescope: T(N)/(N+1) = T(1)/2 + 2c·Σ<sub>i=3..N+1</sub> 1/i</li>
+      <li>ใช้ harmonic number Σ 1/i ≈ ln M: T(N)/(N+1) ≈ 2c ln N ⟹ <b>T(N) ≈ 2cN ln N = O(N log N)</b></li>
+    </ol>
+    <p><b>Stability:</b> Unstable — การย้าย element ข้าม pivot ระหว่าง partition ทำให้ลำดับของตัวที่เท่ากันเปลี่ยนได้</p>
+
+    <!-- ===================== 6 ===================== -->
+    <h2 id="heap">6. Heapsort</h2>
+    <p>ใช้ Binary Heap เรียงแบบ <b>in-place ไม่ใช้หน่วยความจำเพิ่ม</b> เพื่อเรียงจากน้อยไปมาก:</p>
+    <ol>
+      <li><b>buildHeap:</b> สร้าง <b>Max-Heap</b> ใน array เดิมใน O(N)</li>
+      <li><b>deleteMax ซ้ำๆ:</b> swap root (index 0 = ค่ามากสุด) กับตัวสุดท้ายของ heap (index j) → ลด logical heap size ลง 1 → percolate down root ใหม่</li>
+    </ol>
+    <p>หลัง N−1 swap array จะเรียงจากน้อยไปมาก — ค่ามากสุดที่ root ไปอยู่ท้าย array ถูกตำแหน่งพอดี (ถ้าใช้ Min-Heap จะได้ลำดับจากมากไปน้อย ยกเว้นใช้หน่วยความจำเพิ่ม)</p>
+
+    <h3>6.1 เทียบกับ Priority Queue (บทที่ 7)</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>หัวข้อ</th><th>Priority Queue (บทที่ 7)</th><th>Heapsort (บทที่ 10)</th></tr>
+      <tr><td>ชนิด Heap</td><td>Min-Heap (ต่ำสุดที่ root)</td><td>Max-Heap (สูงสุดที่ root)</td></tr>
+      <tr><td>เป้าหมาย</td><td>ดึงค่าน้อยสุดออกก่อน</td><td>เรียง array จากน้อยไปมากในที่เดิม</td></tr>
+      <tr><td>Index</td><td>เริ่มที่ 1 (root = 1)</td><td>เริ่มที่ 0 (root = 0)</td></tr>
+      <tr><td>Left child</td><td>2i</td><td>2i + 1</td></tr>
+      <tr><td>Right child</td><td>2i + 1</td><td>2i + 2</td></tr>
+      <tr><td>Sentinel</td><td>ใช้ array[0]</td><td>ไม่ใช้ (เช็กขอบเขตตรงๆ)</td></tr>
+    </table></div>
+    <div class="code"><div class="code-head"><span>C++ · heapsort + percDown</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename Comparable&gt;
+void heapsort( vector&lt;Comparable&gt; &amp; a ) {
+    // Phase 1: buildHeap
+    for( int i = a.size( ) / 2 - 1; i &gt;= 0; --i )
+        percDown( a, i, a.size( ) );
+
+    // Phase 2: deleteMax swaps
+    for( int j = a.size( ) - 1; j &gt; 0; --j ) {
+        std::swap( a[ 0 ], a[ j ] );
+        percDown( a, 0, j );
+    }
+}
+
+template &lt;typename Comparable&gt;
+void percDown( vector&lt;Comparable&gt; &amp; a, int i, int n ) {
+    int child;
+    Comparable tmp;
+    for( tmp = std::move( a[ i ] ); 2 * i + 1 &lt; n; i = child ) {
+        child = 2 * i + 1;                              // left child
+        if( child != n - 1 &amp;&amp; a[ child ] &lt; a[ child + 1 ] )
+            ++child;                                    // เลือก child ที่ใหญ่กว่า
+        if( tmp &lt; a[ child ] )
+            a[ i ] = std::move( a[ child ] );
+        else
+            break;
+    }
+    a[ i ] = std::move( tmp );
+}</code></pre></div>
+
+    <h3>6.2 Trace: [31, 53, 59, 26, 41, 58, 97]</h3>
+    <div class="grid2 stack">
+      <div class="step"><h4>เริ่มต้น (ยังไม่เป็น heap)</h4>
+        <p>เริ่ม percDown ที่ index 2 (ค่า 59)</p>
+        <div class="tree" data-heap="31,53,59,26,41,58,97" data-cmp="3"></div></div>
+      <div class="step"><h4>หลัง percDown(2) และ percDown(1)</h4>
+        <p>59 จมลงแลกกับ 97 → percDown(1): 53 &gt; 26, 41 ไม่เปลี่ยน → จากนั้น percDown(0) ที่ค่า 31</p>
+        <div class="tree" data-heap="31,53,97,26,41,58,59" data-cmp="1"></div></div>
+      <div class="step"><h4>Max-Heap เสร็จ</h4>
+        <p>array = 97, 53, 59, 26, 41, 58, 31 (ตรงกับ Figure 7.8)</p>
+        <div class="tree" data-heap="97,53,59,26,41,58,31" data-done="1"></div></div>
+    </div>
+    <h4>deleteMax</h4>
+    <ol>
+      <li>swap root (97) กับตัวสุดท้าย (31) → percDown (size 6) → <code>59, 53, 58, 26, 41, 31 | 97</code> (Figure 7.9)</li>
+      <li>swap root (59) กับตัวสุดท้าย (31) → percDown (size 5) → <code>58, 53, 31, 26, 41 | 59, 97</code></li>
+      <li>ทำซ้ำจนครบ → <code>26, 31, 41, 53, 58, 59, 97</code></li>
+    </ol>
+    <div class="callout"><strong class="t">สรุป Heapsort</strong>
+      <ul style="margin:6px 0 0">
+        <li><b>เวลา:</b> Θ(N log N) ทั้ง best / average / worst · เฉลี่ย 2N log N − O(N log log N) comparisons</li>
+        <li><b>Space:</b> O(1) (in-place สมบูรณ์) — ดีกว่า Merge Sort เมื่อหน่วยความจำจำกัด</li>
+        <li><b>Unstable:</b> การ swap ระยะไกลระหว่างทำ heap ทำลายลำดับเดิมของ key ที่เท่ากัน</li>
+      </ul>
+    </div>
+
+    <!-- ===================== 7 ===================== -->
+    <h2 id="lower">7. Lower Bound ของ Comparison Sort</h2>
+    <div class="callout"><strong class="t">Theorem</strong>
+      comparison-based sorting ใดๆ ต้องใช้อย่างน้อย <b>⌈log₂(N!)⌉</b> การเปรียบเทียบในกรณีเลวร้ายที่สุด
+    </div>
+    <h3>พิสูจน์ด้วย Decision Tree</h3>
+    <ul>
+      <li>Decision tree คือ binary tree ที่แทนการเปรียบเทียบของ algorithm บนอินพุต N ตัว</li>
+      <li>แต่ละ <b>internal node</b> = การเปรียบเทียบ aᵢ &lt; aⱼ</li>
+      <li>แต่ละ <b>leaf</b> = permutation ที่เรียงแล้วหนึ่งแบบ</li>
+      <li>มี permutation ทั้งหมด N! แบบ → ต้องมี leaf ≥ N! ใบ</li>
+      <li>binary tree ที่สูง h มี leaf ได้มากสุด 2<sup>h</sup> ⟹ 2<sup>h</sup> ≥ N! ⟹ <b>h ≥ log₂(N!)</b></li>
+    </ul>
+    <h3>Stirling's Approximation</h3>
+    <p>N! ≈ √(2πN) · (N/e)<sup>N</sup> ⟹ log₂(N!) ≈ N log₂N − N log₂e + ½ log₂(2πN) ≥ <b>N log₂N − 1.44N = Ω(N log N)</b></p>
+    <div class="callout warn"><strong class="t">Corollary</strong>
+      comparison-based sort ใดๆ มี worst-case lower bound <b>Ω(N log N)</b> · ถ้าอยากได้ linear time (O(N)) ต้องใช้ algorithm ที่ <b>ไม่อาศัยการเปรียบเทียบอย่างเดียว</b>
+    </div>
+
+    <!-- ===================== 8 ===================== -->
+    <h2 id="linear">8. Sorting แบบ Linear Time</h2>
+    <h3>8.1 Bucket Sort</h3>
+    <ul>
+      <li>สมมติอินพุตเป็นจำนวนเต็มในช่วง <code>[0, M−1]</code></li>
+      <li>เตรียม array ของ list ว่าง M ช่อง (bucket) · สแกนอินพุต ใส่ x ลง bucket x · ต่อทุก bucket ตามลำดับ</li>
+      <li>Distribution O(N) + Concatenation O(M) = <b>O(N + M)</b> · ถ้า M = O(N) จะเป็น <b>O(N)</b></li>
+    </ul>
+    <h3>8.2 Counting Sort</h3>
+    <p>แบบ bucket sort ที่ใช้ array ของจำนวนนับ และทำให้ <b>stable</b> ได้ด้วยผลรวมสะสม:</p>
+    <ol>
+      <li>นับจำนวนครั้งของแต่ละ key ลง <code>count</code> ขนาด M</li>
+      <li>แปลงเป็น prefix sum: <code>count[i] += count[i-1]</code></li>
+      <li>สแกนอินพุต <b>จากหลังมาหน้า</b>: สำหรับ x ตำแหน่งในผลลัพธ์คือ <code>count[x] − 1</code> → เขียน x ลง output → <code>count[x]--</code></li>
+    </ol>
+    <h4>Trace: [4, 2<sub>a</sub>, 2<sub>b</sub>, 8, 3<sub>a</sub>, 3<sub>b</sub>, 1] (key 1..8)</h4>
+    <div class="scroll-x"><table class="data">
+      <tr><th>key</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+      <tr><td>count (นับ)</td><td>1</td><td>2</td><td>2</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+      <tr><td>count (prefix sum)</td><td>1</td><td>3</td><td>5</td><td>6</td><td>6</td><td>6</td><td>6</td><td>7</td></tr>
+    </table></div>
+    <p>สแกนจากหลัง: 1 → count[1] = 1 → B[0] · 3<sub>b</sub> → count[3] = 5 → B[4] · 3<sub>a</sub> → count[3] = 4 → B[3] · 8 → B[6] · 2<sub>b</sub> → B[2] · 2<sub>a</sub> → B[1] · 4 → B[5] ⟹ <b>[1, 2a, 2b, 3a, 3b, 4, 8]</b> (ตัวที่เท่ากันคงลำดับเดิม = stable)</p>
+    <h3>8.3 Radix Sort</h3>
+    <ul>
+      <li>เรียงจำนวนเต็ม (หรือ string) <b>ทีละหลัก</b> โดยต้องเริ่มจาก <b>หลักน้อยสุด (LSD) ไปหลักมากสุด (MSD)</b> ด้วย stable sort (เช่น counting sort หรือ stable bucket sort)</li>
+      <li>ถ้าเริ่มจากหลักมากสุดก่อน pass ถัดไปของหลักต่ำกว่าจะ <b>ทำลายลำดับที่เรียงไว้ของหลักสูง</b></li>
+      <li>คีย์มี P หลัก (pass) และ radix ขนาด B (bucket): <b>O(P(N + B))</b> · ถ้า P, B คงที่ → <b>O(N)</b></li>
+    </ul>
+    <h4>Trace: [329, 457, 657, 839, 436, 720, 355]</h4>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Input</th><th>Pass 1 (หน่วย)</th><th>Pass 2 (สิบ)</th><th>Pass 3 (ร้อย)</th></tr>
+      <tr><td>329</td><td>720</td><td>720</td><td>329</td></tr>
+      <tr><td>457</td><td>355</td><td>329</td><td>355</td></tr>
+      <tr><td>657</td><td>436</td><td>436</td><td>436</td></tr>
+      <tr><td>839</td><td>457</td><td>839</td><td>457</td></tr>
+      <tr><td>436</td><td>657</td><td>355</td><td>657</td></tr>
+      <tr><td>720</td><td>329</td><td>457</td><td>720</td></tr>
+      <tr><td>355</td><td>839</td><td>657</td><td>839</td></tr>
+    </table></div>
+    <p>สังเกต: ตัวที่หลักเท่ากันใน pass หนึ่งคงลำดับจาก pass ก่อน (เช่น 457 กับ 657 หลักหน่วยเป็น 7 ทั้งคู่ ยังอยู่ลำดับ 457 → 657 ใน Pass 1)</p>
+    <div class="code"><div class="code-head"><span>C++ · radixSortA (string ความยาวเท่ากัน)</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">/* Radix sort an array of Strings of the same length */
+void radixSortA( vector&lt;string&gt; &amp; arr, int stringLen ) {
+    const int BUCKETS = 256;
+    vector&lt;vector&lt;string&gt;&gt; buckets( BUCKETS );
+
+    // เรียงจาก LSD ไป MSD
+    for( int pos = stringLen - 1; pos &gt;= 0; --pos ) {
+        for( string &amp; s : arr )
+            buckets[ s[ pos ] ].push_back( std::move( s ) );
+
+        int idx = 0;
+        for( auto &amp; thisBucket : buckets ) {
+            for( string &amp; s : thisBucket )
+                arr[ idx++ ] = std::move( s );
+            thisBucket.clear( );
+        }
+    }
+}</code></pre></div>
+
+    <!-- ===================== 9 ===================== -->
+    <h2 id="sim">9. Simulation: ลองเล่น Sorting</h2>
+    <p>เลือก algorithm แล้วแก้อินพุตได้เอง (สูงสุด 15 ตัว) กด <b>เริ่ม</b> เพื่อดูทีละขั้น (เล่นอัตโนมัติ หรือกดย้อน/ถัดไป) · ถ้ามีค่าซ้ำ ตัวตนจะถูกติดป้าย a, b, … ตามลำดับในอินพุต เพื่อดูเรื่อง <b>stability</b> ว่าตัวที่เท่ากันสลับที่กันหรือไม่ · ตัวนับด้านล่างแสดงจำนวนการเปรียบเทียบและ swap/เลื่อน</p>
+    <div class="sim">
+      <div class="sim-controls">
+        <select id="so-alg" aria-label="Algorithm">
+          <option value="selection">Selection Sort</option>
+          <option value="insertion">Insertion Sort</option>
+          <option value="merge">Merge Sort</option>
+          <option value="quick" selected>Quicksort</option>
+          <option value="heap">Heapsort</option>
+          <option value="counting">Counting Sort</option>
+          <option value="radix">Radix Sort (LSD)</option>
+        </select>
+        <input type="text" id="so-input" aria-label="อินพุต" style="width:260px;max-width:100%">
+        <button id="so-run" class="primary" type="button">เริ่ม</button>
+        <button id="so-random" class="ghost" type="button">สุ่ม</button>
+        <label class="chk"><input type="checkbox" id="so-cutoff"> cutoff (ช่วงขนาด ≤ 10 ใช้ insertion sort)</label>
+      </div>
+      <p class="muted" id="so-hint" style="margin:4px 0;font-size:.88rem"></p>
+      <div id="so-msg" class="sim-msg" aria-live="polite"></div>
+      <div id="so-stats" class="sim-stats"></div>
+      <div id="so-view" class="ht-stage" style="max-height:none"></div>
+      <div class="sim-legend">
+        <span><i style="background:var(--cmp)"></i>กำลังเทียบ / ช่วงซ้าย</span>
+        <span><i style="background:var(--hole);border-color:var(--hole-stroke)"></i>swap / ย้าย / ช่วงขวา</span>
+        <span><i style="background:var(--done)"></i>อยู่ถูกตำแหน่งแล้ว</span>
+        <span><i style="border:2px solid var(--accent);background:transparent"></i>pivot</span>
+      </div>
+      <div class="sim-nav">
+        <button id="so-prev" type="button">◀ ย้อน</button>
+        <button id="so-play" class="primary" type="button">▶ เล่น</button>
+        <button id="so-next" type="button">ถัดไป ▶</button>
+        <label>ช้า <input type="range" id="so-speed" min="300" max="1800" step="100" value="900" style="direction:rtl;vertical-align:middle"> เร็ว</label>
+      </div>
+    </div>
+    <div class="callout"><strong class="t">ลองดู</strong>
+      <ul style="margin:6px 0 0">
+        <li>Selection Sort: ใส่ <code>2, 2, 1</code> → 2<sub>a</sub> กับ 2<sub>b</sub> สลับที่ (unstable)</li>
+        <li>Insertion Sort: ใส่ <code>1, 2, 3, 4, 5</code> → เทียบแค่ 4 ครั้ง ไม่ shift เลย (O(N)) · ลอง <code>5, 4, 3, 2, 1</code> เทียบ</li>
+        <li>Quicksort: ลองใส่ข้อมูลที่เรียงแล้ว <code>1, 2, 3, 4, 5, 6, 7, 8</code> → median-of-three ทำให้ partition สมดุล</li>
+        <li>Counting / Radix: ค่าซ้ำยังคงลำดับเดิม (stable)</li>
+      </ul>
+    </div>
+
+    <!-- ===================== 10 ===================== -->
+    <h2 id="summary">10. สรุป &amp; แบบฝึกหัด</h2>
+    <h3>เปรียบเทียบ Algorithm</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Algorithm</th><th>Best</th><th>Average</th><th>Worst</th><th>Space</th><th>Stable?</th></tr>
+      <tr><td>Selection Sort</td><td>N²</td><td>N²</td><td>N²</td><td>1</td><td>ไม่</td></tr>
+      <tr><td>Insertion Sort</td><td>N</td><td>N²</td><td>N²</td><td>1</td><td>ใช่</td></tr>
+      <tr><td>Merge Sort</td><td>N log N</td><td>N log N</td><td>N log N</td><td>N</td><td>ใช่</td></tr>
+      <tr><td>Quicksort</td><td>N log N</td><td>N log N</td><td>N²</td><td>log N</td><td>ไม่</td></tr>
+      <tr><td>Heapsort</td><td>N log N</td><td>N log N</td><td>N log N</td><td>1</td><td>ไม่</td></tr>
+      <tr><td>Radix Sort</td><td>P(N + B)</td><td>P(N + B)</td><td>P(N + B)</td><td>N + B</td><td>ใช่</td></tr>
+    </table></div>
+    <div class="callout"><strong class="t">เลือกใช้อันไหน?</strong>
+      <ul style="margin:6px 0 0">
+        <li><b>Quicksort</b> — sort ทั่วไปที่ต้องการประสิทธิภาพสูง</li>
+        <li><b>Merge Sort</b> — ต้องการ stable และมีหน่วยความจำเพิ่มพอ</li>
+        <li><b>Heapsort</b> — หน่วยความจำจำกัดและไม่ต้องการ stable</li>
+        <li><b>Insertion Sort</b> — ข้อมูลน้อยหรือเกือบเรียงอยู่แล้ว (ใช้เป็น cutoff ใน quicksort)</li>
+      </ul>
+    </div>
+
+    <h3>แบบฝึกหัด</h3>
+    <details><summary>1) Selection Sort กับ array 6 ตัว ต้องเปรียบเทียบกี่ครั้ง และ swap มากสุดกี่ครั้ง?</summary>
+      เทียบ N(N−1)/2 = 6·5/2 = <b>15 ครั้ง</b> เสมอ (ไม่ขึ้นกับอินพุต) · swap ไม่เกิน N−1 = <b>5 ครั้ง</b></details>
+    <details><summary>2) [3, 2, 1] มีกี่ inversion? Insertion Sort ต้อง shift กี่ครั้ง? และ N = 5 เฉลี่ยมี inversion เท่าไร?</summary>
+      inversion: (3,2), (3,1), (2,1) = <b>3 คู่</b> · shift ทุกครั้งลบได้ 1 inversion จึง shift <b>3 ครั้ง</b> · เฉลี่ย N = 5: N(N−1)/4 = 5·4/4 = <b>5 คู่</b></details>
+    <details><summary>3) ทำไม Merge Sort stable แต่ Selection Sort ไม่ stable?</summary>
+      Merge เลือกจากครึ่งซ้ายก่อนเมื่อค่าเท่ากัน (<code>a[leftPos] &lt;= a[rightPos]</code>) จึงรักษาลำดับ · Selection swap ตัวน้อยสุดกลับมาที่หัว suffix ซึ่งอาจข้ามตัวที่ค่าเท่ากันไปได้ เช่น [2<sub>a</sub>, 2<sub>b</sub>, 1] → [1, 2<sub>b</sub>, 2<sub>a</sub>]</details>
+    <details><summary>4) Quicksort เลือก pivot เป็นตัวแรก แล้วอินพุตเรียงอยู่แล้ว เวลาเป็นเท่าไร? แก้อย่างไร?</summary>
+      pivot เป็นค่าต่ำสุดทุกครั้ง → T(N) = T(N−1) + O(N) = <b>Θ(N²)</b> · แก้ด้วย <b>median-of-three</b> (หรือสุ่ม pivot) → อินพุตที่เรียงแล้วแบ่งสมดุล</details>
+    <details><summary>5) ทำ Counting Sort ให้ [3<sub>a</sub>, 1, 3<sub>b</sub>] (key 1..3)</summary>
+      count = [1, 0, 2] → prefix = [1, 1, 3] · สแกนจากหลัง: 3<sub>b</sub> → count[3] = 3 → B[2] (count[3] = 2) · 1 → count[1] = 1 → B[0] · 3<sub>a</sub> → count[3] = 2 → B[1] · ผล: <b>[1, 3a, 3b]</b> (stable)</details>
+    <details><summary>6) ทำไม Radix Sort ต้องเริ่มจากหลักน้อยสุด และต้องใช้ stable sort ในแต่ละ pass?</summary>
+      เพราะแต่ละ pass ใหม่จะเรียงตามหลักที่สูงกว่า โดยตัวที่หลักนั้นเท่ากันต้องคงลำดับจาก pass ก่อน (ซึ่งเรียงตามหลักต่ำกว่าไว้แล้ว) → ต้อง stable · ถ้าเริ่มจาก MSD pass ของหลักต่ำจะทำลายลำดับของหลักสูงที่เรียงไว้</details>
+    <details><summary>7) ทำไมไม่มี comparison sort ที่เร็วกว่า N log N ในกรณีเลวร้ายที่สุด แต่ Counting Sort ทำได้ O(N + M)?</summary>
+      Decision tree ต้องมี leaf ≥ N! ใบ จึงสูงอย่างน้อย log₂(N!) = Ω(N log N) สำหรับ comparison sort · Counting Sort ไม่ได้ตัดสินใจจากการเทียบ key แต่ใช้ค่า key เป็น index ตรงๆ จึงอยู่นอกโมเดลนี้ (แต่ต้องรู้ช่วงของ key)</details>
+
+    <div class="pager"><a href="chapter-09.html">← บทที่ 9</a><a href="chapter-11.html">บทที่ 11 Graphs →</a></div>
+  </article>
+</div>
+
+<footer>204252 Data Structures and Analysis · Computer Science Department</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+<script src="../assets/heap.js"></script>
+<script src="../assets/sort.js"></script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  document.querySelectorAll('.code-head button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.closest('.code').querySelector('code').innerText;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+        b.textContent = 'คัดลอกแล้ว ✔'; setTimeout(function () { b.textContent = 'คัดลอก'; }, 1500);
+      }, function () {});
+    });
+  });
+  // เน้นหัวข้อปัจจุบันใน TOC
+  var links = [].slice.call(document.querySelectorAll('.toc a'));
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (e.isIntersecting) links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article h2[id]').forEach(function (h) { io.observe(h); });
+</script>
+</body>
+</html>

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>บทที่ 11 Graphs | 204252 Final</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+<nav class="topbar">
+  <a href="../index.html">204252 Final</a><span class="sep">/</span><span class="crumb">บทที่ 11 Graphs</span>
+</nav>
+
+<div class="layout">
+  <aside class="toc"><ol id="toc-list">
+    <li><a href="#terms">1. คำศัพท์ของ Graph</a></li>
+    <li><a href="#repr">2. การเก็บ Graph</a></li>
+    <li><a href="#traversal">3. BFS &amp; DFS</a></li>
+    <li><a href="#dsu">4. Disjoint Sets (Union-Find)</a></li>
+    <li><a href="#mst">5. Minimum Spanning Tree</a></li>
+    <li><a href="#sp">6. Shortest Paths</a></li>
+    <li><a href="#sim">7. Simulation</a></li>
+    <li><a href="#summary">8. สรุป &amp; แบบฝึกหัด</a></li>
+  </ol></aside>
+
+  <article>
+    <h1>บทที่ 11: Graphs</h1>
+    <p class="subtitle">204252 Data Structures and Analysis · อ้างอิงสไลด์ Part 1–4 (Graph, Disjoint Sets, MST, Shortest Paths)</p>
+
+    <!-- ===================== 1 ===================== -->
+    <h2 id="terms">1. คำศัพท์ของ Graph</h2>
+    <p><b>Graph</b> G = (V, E) ประกอบด้วย <b>V</b> เซตจำกัดของ <b>vertex</b> (node) และ <b>E</b> เซตของ <b>edge</b> (arc) ที่เชื่อมคู่ vertex แต่ละเส้นเป็นคู่ (u, v) โดย u, v ∈ V</p>
+    <h3>1.1 ชนิดของ Graph</h3>
+    <ul>
+      <li><b>Directed Graph (Digraph):</b> เส้นเป็นคู่อันดับ (u, v) มีทิศ u → v · v เป็น <i>adjacent</i> ของ u แต่ u ไม่จำเป็นต้อง adjacent กับ v</li>
+      <li><b>Undirected Graph:</b> เส้น (u, v) ไม่มีทิศ ถ้า (u, v) ∈ E แล้ว (v, u) ∈ E โดยนัย</li>
+      <li><b>Weighted Graph:</b> แต่ละเส้นมีค่าตัวเลข (weight / cost)</li>
+    </ul>
+    <h3>1.2 Degree</h3>
+    <ul>
+      <li><b>Degree</b> ของ v (undirected): จำนวนเส้นที่ต่ออยู่กับ v</li>
+      <li><b>In-degree</b> ของ v (directed): จำนวนเส้นที่ชี้ <i>เข้า</i> v · <b>Out-degree</b>: จำนวนเส้นที่ออกจาก v</li>
+    </ul>
+    <p>ตัวอย่าง: กราฟ A → B → C → A · สำหรับ A: in-degree = 1 (จาก C), out-degree = 1 (ไป B), total degree = 2</p>
+    <h3>1.3 Path และ Cycle</h3>
+    <ul>
+      <li><b>Path:</b> ลำดับ vertex w₁, w₂, …, w<sub>N</sub> ที่ (wᵢ, wᵢ₊₁) ∈ E · <b>Path Length</b> = จำนวนเส้น (= N − 1)</li>
+      <li><b>Simple Path:</b> path ที่ vertex ไม่ซ้ำกัน (ยกเว้นตัวแรกกับตัวสุดท้ายอาจเป็นตัวเดียวกัน)</li>
+      <li><b>Cycle:</b> path ที่ยาว ≥ 1 และ w₁ = w<sub>N</sub> · <b>Simple Cycle:</b> cycle ที่เป็น simple (ใน undirected เส้นต้องไม่ซ้ำ)</li>
+      <li><b>DAG (Directed Acyclic Graph):</b> directed graph ที่ไม่มี cycle</li>
+    </ul>
+    <h3>1.4 Connectivity</h3>
+    <ul>
+      <li><b>Connected (undirected):</b> มี path จากทุก vertex ไปทุก vertex</li>
+      <li><b>Strongly Connected (directed):</b> มี path จากทุก vertex ไปทุก vertex (ตามทิศ)</li>
+      <li><b>Weakly Connected (directed):</b> ถ้าไม่สนทิศของเส้น (underlying undirected graph) แล้ว connected</li>
+      <li><b>Complete Graph (Kₙ):</b> มีเส้นระหว่างทุกคู่ vertex · undirected complete graph มี <b>|V|(|V| − 1)/2</b> เส้น</li>
+    </ul>
+
+    <!-- ===================== 2 ===================== -->
+    <h2 id="repr">2. การเก็บ Graph (Graph Representations)</h2>
+    <p>ตัวอย่างในหัวข้อนี้ใช้ directed graph 3 vertex: <b>1 → 2, 2 → 3, 3 → 1</b></p>
+    <h3>2.1 Adjacency Matrix</h3>
+    <p>array 2 มิติขนาด |V| × |V|: A[i][j] = 1 ถ้ามีเส้น (i, j) ไม่เช่นนั้น 0 (ถ้ามี weight ให้เก็บ weight และใช้ ∞ หรือ 0 แทน "ไม่มีเส้น")</p>
+    <div class="scroll-x"><table class="arr">
+      <tr><th></th><th>1</th><th>2</th><th>3</th></tr>
+      <tr><th>1</th><td>0</td><td class="done">1</td><td>0</td></tr>
+      <tr><th>2</th><td>0</td><td>0</td><td class="done">1</td></tr>
+      <tr><th>3</th><td class="done">1</td><td>0</td><td>0</td></tr>
+    </table></div>
+    <p><b>Space O(|V|²)</b> · ข้อดี: เช็กเส้นด้วย <b>O(1)</b> · ข้อเสีย: เปลืองที่มากกับ sparse graph</p>
+    <div class="code"><div class="code-head"><span>C++ · AdjacencyMatrixGraph</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">class AdjacencyMatrixGraph {
+private:
+    int numVertices;
+    vector&lt;vector&lt;int&gt;&gt; adjMatrix;
+
+public:
+    AdjacencyMatrixGraph(int vertices) : numVertices(vertices) {
+        adjMatrix.resize(vertices, vector&lt;int&gt;(vertices, 0));
+    }
+
+    void addEdge(int u, int v, int w = 1) {
+        adjMatrix[u][v] = w;            // สำหรับ directed graph
+    }
+
+    bool hasEdge(int u, int v) {
+        return adjMatrix[u][v] != 0;
+    }
+};</code></pre></div>
+    <h3>2.2 Adjacency List</h3>
+    <p>array ของ linked list (หรือ vector) ขนาด |V| · แต่ละ vertex u เก็บ list ของ vertex ที่ adjacent กับ u</p>
+    <p><code>Adj[1] → [2]</code> · <code>Adj[2] → [3]</code> · <code>Adj[3] → [1]</code></p>
+    <p><b>Space O(|V| + |E|)</b> · ข้อดี: ประหยัดที่สำหรับ sparse graph · ข้อเสีย: เช็กเส้นต้อง O(degree(u))</p>
+    <div class="code"><div class="code-head"><span>C++ · AdjacencyListGraph</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">class AdjacencyListGraph {
+private:
+    int numVertices;
+    vector&lt;vector&lt;int&gt;&gt; adjList;
+
+public:
+    AdjacencyListGraph(int vertices) : numVertices(vertices) {
+        adjList.resize(vertices);
+    }
+
+    void addEdge(int u, int v) {
+        adjList[u].push_back(v);        // สำหรับ directed graph
+    }
+
+    bool hasEdge(int u, int v) {
+        for (int neighbor : adjList[u]) {
+            if (neighbor == v) return true;
+        }
+        return false;
+    }
+};</code></pre></div>
+    <h3>2.3 Edge List</h3>
+    <p>เก็บทุกเส้นเป็น collection (list / array / vector) ของคู่หรือ struct · ตัวอย่าง: <code>Edges = [(1, 2), (2, 3), (3, 1)]</code></p>
+    <p><b>Space O(|E|)</b> · ข้อดี: เรียบง่าย ประหยัดมาก เหมาะกับ algorithm ที่ทำงานกับ "เส้น" (เช่น Kruskal's MST, Bellman-Ford) · ข้อเสีย: หา neighbor หรือเช็กว่ามีเส้นต้องสแกนทั้งหมด</p>
+    <div class="code"><div class="code-head"><span>C++ · EdgeListGraph</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">struct Edge {
+    int src;
+    int dest;
+    int weight;      // ไม่บังคับ ใช้เมื่อเป็น weighted graph
+};
+
+class EdgeListGraph {
+private:
+    int numVertices;
+    vector&lt;Edge&gt; edges;
+
+public:
+    EdgeListGraph(int vertices) : numVertices(vertices) {}
+
+    void addEdge(int u, int v, int w = 1) {
+        edges.push_back({u, v, w});
+    }
+
+    bool hasEdge(int u, int v) {
+        for (const auto &amp; edge : edges) {
+            if (edge.src == u &amp;&amp; edge.dest == v) return true;
+        }
+        return false;
+    }
+};</code></pre></div>
+    <h3>2.4 เปรียบเทียบ</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Operation</th><th>Adjacency Matrix</th><th>Adjacency List</th><th>Edge List</th></tr>
+      <tr><td>Space</td><td>O(|V|²)</td><td>O(|V| + |E|)</td><td>O(|E|)</td></tr>
+      <tr><td>Add / Remove Edge</td><td>O(1)</td><td>O(1)</td><td>O(1) / O(|E|)</td></tr>
+      <tr><td>เช็กว่ามีเส้น (u, v)</td><td>O(1)</td><td>O(deg(u))</td><td>O(|E|)</td></tr>
+      <tr><td>หา neighbor ทั้งหมดของ u</td><td>O(|V|)</td><td>O(deg(u))</td><td>O(|E|)</td></tr>
+      <tr><td>ไล่ดูทั้ง graph</td><td>O(|V|²)</td><td>O(|V| + |E|)</td><td>O(|E|)</td></tr>
+    </table></div>
+    <div class="callout"><strong class="t">หมายเหตุ</strong>
+      graph ในโลกจริงส่วนใหญ่เป็น <b>sparse</b> (|E| ≪ |V|²) จึงใช้ <b>adjacency list</b> เป็นค่าเริ่มต้น
+    </div>
+
+    <!-- ===================== 3 ===================== -->
+    <h2 id="traversal">3. Graph Traversal: BFS &amp; DFS</h2>
+    <p>เป้าหมาย: เยี่ยมทุก vertex อย่างเป็นระบบเริ่มจากต้นทาง</p>
+    <ol>
+      <li><b>BFS (Breadth-First Search):</b> สำรวจ "ทีละระดับ" เยี่ยม neighbor ก่อนลงลึก ใช้ <b>Queue (FIFO)</b></li>
+      <li><b>DFS (Depth-First Search):</b> สำรวจลึกตาม path ให้สุดก่อนแล้ว backtrack ใช้ <b>Stack (LIFO)</b> หรือ recursion</li>
+    </ol>
+    <p>กราฟตัวอย่าง (7 vertex, directed) ที่ใช้ในสไลด์: v₁→v₂, v₁→v₄, v₂→v₄, v₂→v₅, v₃→v₁, v₃→v₆, v₄→v₃, v₄→v₅, v₄→v₆, v₄→v₇, v₅→v₇, v₇→v₆ (adjacency list เรียงตามลำดับนี้) · ลองดูใน <a href="#sim">Simulation</a></p>
+
+    <h3>3.1 BFS</h3>
+    <ol>
+      <li>ตั้ง dist ของทุก vertex เป็น ∞ (ยังไม่เยี่ยม)</li>
+      <li>ตั้ง dist[s] = 0, mark visited, push s เข้า queue</li>
+      <li>ขณะ queue ไม่ว่าง: pop vertex u หน้าสุด · สำหรับทุก neighbor v ที่ยังไม่ visited: <code>dist[v] = dist[u] + 1</code>, <code>path[v] = u</code>, mark visited, push v</li>
+    </ol>
+    <p><b>เวลา O(|V| + |E|)</b> (adjacency list) · <b>Space O(|V|)</b> สำหรับ queue และ visited</p>
+    <div class="code"><div class="code-head"><span>C++ · BFS</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void Graph::BFS(int s) {
+    vector&lt;int&gt; dist(numVertices, INT_MAX);
+    vector&lt;int&gt; path(numVertices, -1);
+    vector&lt;bool&gt; visited(numVertices, false);
+    queue&lt;int&gt; q;
+
+    dist[s] = 0;
+    visited[s] = true;
+    q.push(s);
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        cout &lt;&lt; "Visited node: " &lt;&lt; u &lt;&lt; " at distance " &lt;&lt; dist[u] &lt;&lt; "\n";
+
+        for (int v : adjLists[u]) {
+            if (!visited[v]) {
+                visited[v] = true;
+                dist[v] = dist[u] + 1;
+                path[v] = u;
+                q.push(v);
+            }
+        }
+    }
+}</code></pre></div>
+    <h4>Trace: BFS จาก v₃</h4>
+    <div class="scroll-x"><table class="data">
+      <tr><th>ขั้น</th><th>Dequeue</th><th>Queue หลังขั้นนี้</th><th>dist ที่เปลี่ยน</th></tr>
+      <tr><td>เริ่ม</td><td>–</td><td>[v₃]</td><td>v₃ = 0</td></tr>
+      <tr><td>1</td><td>v₃</td><td>[v₁, v₆]</td><td>v₁ = 1, v₆ = 1</td></tr>
+      <tr><td>2</td><td>v₁</td><td>[v₆, v₂, v₄]</td><td>v₂ = 2, v₄ = 2</td></tr>
+      <tr><td>3</td><td>v₆</td><td>[v₂, v₄]</td><td>– (v₆ ไม่มีเส้นออก)</td></tr>
+      <tr><td>4</td><td>v₂</td><td>[v₄, v₅]</td><td>v₅ = 3</td></tr>
+      <tr><td>5</td><td>v₄</td><td>[v₅, v₇]</td><td>v₇ = 3</td></tr>
+      <tr><td>6</td><td>v₅</td><td>[v₇]</td><td>–</td></tr>
+      <tr><td>7</td><td>v₇</td><td>[ ]</td><td>–</td></tr>
+    </table></div>
+    <p>Queue ว่าง → จบ · ทุก vertex ที่ไปถึงได้มี <b>shortest unweighted path</b> จากต้นทาง (v₃: 0, v₁: 1, v₆: 1, v₂: 2, v₄: 2, v₅: 3, v₇: 3)</p>
+
+    <h3>3.2 DFS</h3>
+    <ol>
+      <li>ตั้งทุก vertex เป็น unvisited</li>
+      <li>สำหรับแต่ละ vertex u ใน V: ถ้า u ยัง unvisited เรียก <code>DFSVisit(u)</code></li>
+      <li><code>DFSVisit(u)</code>: mark u visited · สำหรับแต่ละ neighbor v: ถ้า v unvisited → เส้น (u, v) เป็น <b>Tree Edge</b> แล้วเรียก DFSVisit(v) แบบ recursive · ถ้า v เคยเยี่ยมแล้ว (และยัง active บน call stack) → เส้น (u, v) เป็น <b>Back Edge</b></li>
+    </ol>
+    <p><b>เวลา O(|V| + |E|)</b> · <b>Space O(|V|)</b> จาก recursion stack</p>
+    <div class="code"><div class="code-head"><span>C++ · DFS</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void Graph::DFSVisit(int u, vector&lt;bool&gt;&amp; visited) {
+    visited[u] = true;
+    cout &lt;&lt; "Visited node: " &lt;&lt; u &lt;&lt; "\n";
+
+    for (int v : adjLists[u]) {
+        if (!visited[v]) {
+            DFSVisit(v, visited);
+        }
+    }
+}
+
+void Graph::DFS() {
+    vector&lt;bool&gt; visited(numVertices, false);
+    for (int i = 0; i &lt; numVertices; i++) {
+        if (!visited[i]) {
+            DFSVisit(i, visited);
+        }
+    }
+}</code></pre></div>
+    <h4>Trace: DFS จาก v₃</h4>
+    <p>Call stack: v₃ → v₁ → v₂ → v₄ → v₅ → v₇ → v₆ (ลำดับเยี่ยม: <b>v₃, v₁, v₂, v₄, v₅, v₇, v₆</b>) · จาก v₄ เจอเส้น v₄ → v₃ ซึ่ง v₃ ยังอยู่ใน stack → <b>Back Edge</b> (สไลด์ใช้เส้นประสีแดง) · จากนั้น backtrack ตามลำดับ v₆, v₇, v₅, v₄, v₂, v₁, v₃</p>
+    <div class="callout"><strong class="t">BFS เทียบ DFS</strong>
+      <ul style="margin:6px 0 0">
+        <li>BFS ใช้ <b>queue</b>, ได้ shortest path แบบ unweighted (จำนวนเส้นน้อยสุด)</li>
+        <li>DFS ใช้ <b>stack / recursion</b>, ลึกก่อน, back edge บ่งว่ามี <b>cycle</b></li>
+        <li>เวลาเท่ากันคือ O(|V| + |E|) เมื่อใช้ adjacency list</li>
+      </ul>
+    </div>
+
+    <!-- ===================== 4 ===================== -->
+    <h2 id="dsu">4. Disjoint Sets (Union-Find)</h2>
+    <h3>4.1 Equivalence Relation &amp; Partition</h3>
+    <p>ความสัมพันธ์ R บนเซต S เป็น <b>equivalence relation</b> ถ้า</p>
+    <ol>
+      <li><b>Reflexive:</b> aRa ทุก a ∈ S</li>
+      <li><b>Symmetric:</b> aRb ก็ต่อเมื่อ bRa</li>
+      <li><b>Transitive:</b> ถ้า aRb และ bRc แล้ว aRc</li>
+    </ol>
+    <p>equivalence relation แบ่ง S เป็น <b>equivalence class ที่ไม่ซ้อนกัน (disjoint)</b> — ทุก a อยู่ใน class เดียว และ 2 ตัวอยู่ class เดียวกันก็ต่อเมื่อสัมพันธ์กัน · <b>เป้าหมายของ DSU:</b> รักษา partition นี้แบบ dynamic เมื่อมีการ merge</p>
+    <h3>4.2 Disjoint Set ADT</h3>
+    <ul>
+      <li><code>Find(x)</code> — คืนชื่อของ set ที่ x อยู่ (โดยมากคือ <b>representative</b> ของ set)</li>
+      <li><code>Union(root1, root2)</code> — รวม set ของ root1 กับ root2 เป็น set เดียว</li>
+    </ul>
+    <div class="callout warn"><strong class="t">ข้อจำกัด</strong> set ต้อง disjoint เสมอ (ไม่มี element ที่อยู่ในหลาย set)</div>
+    <h3>4.3 Tree Representation</h3>
+    <p>แทนแต่ละ set ด้วย <b>tree</b> โดยแต่ละ node ชี้ไปหา parent · <b>root</b> คือ representative · parent ของ root เป็นค่าลบ (เก็บขนาดหรือความสูง) · ตัวอย่าง: ต้นไม้ 1 → {2, 3} กับ 4 → {5} เก็บเป็น <code>s = [-1, 1, 1, -1, 4]</code> (index 1..5)</p>
+    <div class="code"><div class="code-head"><span>C++ · Simple Union / Find</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">// สร้าง Disjoint Sets (vector s เริ่มต้นเป็น -1)
+DisjSets::DisjSets(int numElements) : s(numElements, -1) {}
+
+// Simple Union: root2 ชี้ไปที่ root1
+void DisjSets::unionSets(int root1, int root2) {
+    s[root2] = root1;
+}
+
+// Simple Find
+int DisjSets::find(int x) const {
+    if (s[x] &lt; 0)
+        return x;
+    else
+        return find(s[x]);
+}</code></pre></div>
+    <div class="callout warn"><strong class="t">Worst case</strong> อาจได้ต้นไม้สูง N − 1 → find ใช้ <b>O(N)</b> (ลองกด "สร้าง chain" ใน Simulation)</div>
+
+    <h3>4.4 Smart Union</h3>
+    <h4>Union-by-Size</h4>
+    <p>ต่อ <b>tree ที่เล็กกว่า</b> เป็น subtree ของ tree ที่ใหญ่กว่า · เก็บ <b>ขนาดแบบติดลบ</b>ที่ root (ขนาด 3 → root เก็บ −3) · ผลคือความลึกของ node ใดๆ ไม่เกิน <b>⌊log₂ N⌋</b></p>
+    <div class="code"><div class="code-head"><span>C++ · unionBySize</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void DisjSets::unionBySize(int root1, int root2) {
+    if (s[root2] &lt; s[root1]) {       // root2 มีสมาชิกมากกว่า (ติดลบมากกว่า)
+        s[root2] += s[root1];         // อัปเดตขนาดของ root2
+        s[root1] = root2;             // ให้ root2 เป็น parent ของ root1
+    } else {
+        s[root1] += s[root2];         // อัปเดตขนาดของ root1
+        s[root2] = root1;             // ให้ root1 เป็น parent ของ root2
+    }
+}</code></pre></div>
+    <h4>Union-by-Height / Rank</h4>
+    <p>ต่อ <b>tree ที่เตี้ยกว่า</b> เป็น subtree ของ tree ที่สูงกว่า · เก็บ <b>ความสูงแบบติดลบ</b> (เริ่ม −1 = ความสูง 0) · ถ้าสูงเท่ากันให้ root ใหม่ลดค่าลง 1 (ความสูงเพิ่ม 1) · ความลึกกรณีเลวร้ายสุด <b>O(log N)</b></p>
+    <div class="code"><div class="code-head"><span>C++ · unionByHeight</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void DisjSets::unionByHeight(int root1, int root2) {
+    if (s[root2] &lt; s[root1]) {       // root2 สูงกว่า (ติดลบมากกว่า)
+        s[root1] = root2;
+    } else {
+        if (s[root1] == s[root2]) {
+            s[root1]--;               // สูงเท่ากัน → ความสูงเพิ่ม 1
+        }
+        s[root2] = root1;
+    }
+}</code></pre></div>
+
+    <h3>4.5 Path Compression</h3>
+    <p>Smart union การันตีความสูง O(log N) แต่ทำได้ดีกว่านั้นระหว่าง <code>find</code>: <b>Path Compression</b> — ระหว่าง find(x) ให้ทุก node บน path จาก x ถึง root ชี้ตรงไปที่ root</p>
+    <p>ตัวอย่าง: chain R ← A ← B ← C · หลัง find(C) → A, B, C ชี้ตรงไปที่ R ทั้งหมด</p>
+    <div class="code"><div class="code-head"><span>C++ · find with path compression</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">int DisjSets::find(int x) {
+    if (s[x] &lt; 0) {
+        return x;
+    } else {
+        return s[x] = find(s[x]);   // ตั้ง parent ให้ชี้ตรงไปที่ root ของ find
+    }
+}</code></pre></div>
+    <p>โค้ดเรียกซ้ำสั้นมาก: ไต่ขึ้นไปหา root แล้วตอน recursion คลี่กลับ จะกำหนด parent ของทุก node ที่ผ่านให้เป็น root นั้น</p>
+    <h3>4.6 Complexity</h3>
+    <p>ใช้ <b>Union-by-Rank + Path Compression</b> พร้อมกัน เวลาเกือบเป็น linear: ลำดับของ <i>M</i> finds และ <i>N − 1</i> unions ใช้ <b>O(M · α(M, N))</b> เมื่อ α คือ <b>Inverse Ackermann Function</b> ซึ่งโตช้ามากจน α(M, N) ≤ 4 สำหรับค่าที่ใช้จริงทุกกรณี (เช่น N &lt; 2<sup>65536</sup>) → ต้นทุนเฉลี่ยต่อ operation เสมือน <b>O(1)</b></p>
+    <div class="callout warn"><strong class="t">หมายเหตุ</strong>
+      เมื่อใช้ path compression ค่าที่เก็บที่ root ใน union-by-height จะกลายเป็น "ขอบบน" ของความสูง ไม่ใช่ความสูงจริงอีกต่อไป (ใน Simulation สังเกตได้จากความลึกจริงที่แสดง)
+    </div>
+
+    <h3>4.7 การประยุกต์: Dynamic Maze Generation</h3>
+    <ol>
+      <li>เริ่มด้วยกำแพงทุกด้านในตาราง grid</li>
+      <li>สร้าง Disjoint Sets โดยแต่ละช่องเป็น set ของตัวเอง</li>
+      <li>ขณะที่จำนวน set &gt; 1: สุ่มเลือกกำแพงที่คั่นช่อง u กับ v → เรียก find(u) และ find(v)
+        <ul>
+          <li>ถ้า <b>คนละ set</b>: ทุบกำแพง และ <code>unionSets(find(u), find(v))</code></li>
+          <li>ถ้า <b>set เดียวกัน</b>: ไม่ทำอะไร (ทุบแล้วจะเกิด loop / cycle)</li>
+        </ul>
+      </li>
+    </ol>
+    <p>ตัวอย่างตาราง 3 × 3 ตามสไลด์ (ลำดับกำแพงที่สุ่มได้): (0,1) ✔ · (4,7) ✔ · (1,2) ✔ · (3,4) ✔ · (1,4) ✔ · (6,7) ✔ · (0,3) ✘ ปฏิเสธ (อยู่ set เดียวกันแล้ว) · (5,8) ✔ · (7,8) ✔ → เหลือ set เดียว maze เสร็จ · ดูในหัวข้อ <a href="#sim">Simulation</a></p>
+    <div class="callout warn"><strong class="t">หมายเหตุ</strong>
+      ค่า <code>find()</code> ที่แสดงในสไลด์บางขั้น (เช่น Step 3 ที่ find(2) = 7) ไม่ตรงกับ partition ที่แสดงข้างๆ (ขณะนั้น {2} ยังอยู่ set เดี่ยว) · Simulation ในหน้านี้คำนวณค่า find จริงด้วย Union-by-Size · ส่วน partition ในแต่ละขั้นตรงกับสไลด์ทุกขั้น
+    </div>
+
+    <!-- ===================== 5 ===================== -->
+    <h2 id="mst">5. Minimum Spanning Tree (MST)</h2>
+    <h3>5.1 Spanning Tree</h3>
+    <p><b>Spanning Tree</b> ของ undirected connected graph G = (V, E) คือ subgraph ที่เป็น tree (ไม่มี cycle) และครอบคลุมทุก vertex ใน V</p>
+    <ul>
+      <li>มีอยู่ก็ต่อเมื่อ G เป็น connected</li>
+      <li>มี <b>|V| vertex และ |V| − 1 เส้น</b> พอดี</li>
+      <li>เพิ่มเส้นใดๆ 1 เส้นจะเกิด <b>cycle เดียว</b> ที่ไม่ซ้ำ</li>
+      <li>ลบเส้นใดๆ ออก graph จะ <b>ขาดจากกัน</b></li>
+    </ul>
+    <p>สำหรับ weighted undirected graph <b>MST</b> คือ spanning tree ที่ผลรวมน้ำหนักต่ำสุด: w(T) = Σ<sub>e∈T</sub> w(e)</p>
+    <p>กราฟตัวอย่างของหัวข้อนี้ (5 vertex): v₁–v₂ (2), v₁–v₄ (1), v₁–v₃ (4), v₂–v₄ (3), v₂–v₅ (10), v₃–v₄ (2), v₃–v₅ (5), v₄–v₅ (8)</p>
+
+    <h3>5.2 Prim's Algorithm</h3>
+    <p><b>Greedy:</b> เริ่มจาก vertex เดียว แล้วโตต้นไม้ทีละ vertex โดยเลือก <b>เส้นถูกสุดที่เชื่อม vertex ในต้นไม้กับ vertex นอกต้นไม้</b> ทุกรอบ · โครงสร้างคล้าย Dijkstra แต่</p>
+    <ul>
+      <li><b>Dijkstra:</b> ลดระยะรวมจากต้นทาง s → d<sub>v</sub> = d<sub>u</sub> + c(u, v)</li>
+      <li><b>Prim:</b> ลดระยะถึง "ต้นไม้ที่กำลังโต" → d<sub>v</sub> = c(u, v)</li>
+    </ul>
+    <p>โครงสร้างข้อมูล: <b>priority queue</b> เลือกเส้นน้ำหนักน้อยสุดได้อย่างมีประสิทธิภาพ</p>
+    <div class="code"><div class="code-head"><span>C++ · Prim</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void Graph::Prim(int s) {
+    vector&lt;int&gt; dist(numVertices, INT_MAX);
+    vector&lt;int&gt; parent(numVertices, -1);
+    vector&lt;bool&gt; inMST(numVertices, false);
+    dist[s] = 0;
+    priority_queue&lt;pair&lt;int,int&gt;, vector&lt;pair&lt;int,int&gt;&gt;, greater&lt;pair&lt;int,int&gt;&gt;&gt; pq;
+    pq.push({0, s});
+    while (!pq.empty()) {
+        int u = pq.top().second; pq.pop();
+        if (inMST[u]) continue;
+        inMST[u] = true;
+        for (auto edge : adjLists[u]) {
+            int v = edge.dest, w = edge.weight;
+            if (!inMST[v] &amp;&amp; w &lt; dist[v]) {
+                dist[v] = w; parent[v] = u;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+}</code></pre></div>
+    <h4>Trace: เริ่มที่ v₁</h4>
+    <div class="scroll-x"><table class="data">
+      <tr><th>ขั้น</th><th>Process</th><th>เปลี่ยน (dist, parent)</th><th>MST (เส้นที่รับ)</th></tr>
+      <tr><td>1</td><td>v₁</td><td>v₂ = 2 (v₁) · v₃ = 4 (v₁) · v₄ = 1 (v₁)</td><td>–</td></tr>
+      <tr><td>2</td><td>v₄ (dist 1 น้อยสุด)</td><td>v₃ = 2 (v₄) · v₅ = 8 (v₄) · v₂: 3 ไม่น้อยกว่า 2 → ไม่เปลี่ยน</td><td>(v₁,v₄) = 1</td></tr>
+      <tr><td>3</td><td>v₂ (เสมอกับ v₃ ที่ 2 → เลือก v₂)</td><td>v₅: 10 ไม่น้อยกว่า 8 → ไม่เปลี่ยน</td><td>+ (v₁,v₂) = 2</td></tr>
+      <tr><td>4</td><td>v₃</td><td>v₅ = 5 (v₃)</td><td>+ (v₄,v₃) = 2</td></tr>
+      <tr><td>5</td><td>v₅</td><td>–</td><td>+ (v₃,v₅) = 5</td></tr>
+    </table></div>
+    <p><b>ต้นทุน MST รวม = 1 + 2 + 2 + 5 = 10</b></p>
+
+    <h3>5.3 Kruskal's Algorithm</h3>
+    <p><b>Greedy:</b> รักษา <b>forest</b> ของต้นไม้ · เริ่มด้วย |V| ต้น (แต่ละ vertex คือต้นเดี่ยว/set เดี่ยว)</p>
+    <ol>
+      <li>เรียงทุกเส้นตามน้ำหนักจากน้อยไปมาก</li>
+      <li>พิจารณาทีละเส้น: ถ้าเชื่อม vertex ใน <b>คนละต้น</b> → รับเข้า MST และรวมสองต้น · ถ้า <b>ต้นเดียวกัน</b> → ทิ้ง (เพราะจะเกิด cycle)</li>
+    </ol>
+    <p>โครงสร้างข้อมูล: <b>Disjoint Set Union</b> (หัวข้อ 4) ตรวจ cycle และ merge ในเวลาเกือบคงที่ · เหมาะกับ <b>Edge List</b></p>
+    <div class="code"><div class="code-head"><span>C++ · Kruskal</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">vector&lt;Edge&gt; Graph::Kruskal() {
+    vector&lt;Edge&gt; mst;
+    DisjSets ds(numVertices);
+    sort(edges.begin(), edges.end(), [](const Edge&amp; a, const Edge&amp; b) {
+        return a.weight &lt; b.weight;
+    });
+    int edgesCount = 0;
+    for (const Edge&amp; edge : edges) {
+        int root1 = ds.find(edge.src);
+        int root2 = ds.find(edge.dest);
+        if (root1 != root2) {
+            mst.push_back(edge);
+            ds.unionSets(root1, root2);
+            edgesCount++;
+            if (edgesCount == numVertices - 1) break;
+        }
+    }
+    return mst;
+}</code></pre></div>
+    <h4>Trace</h4>
+    <div class="scroll-x"><table class="data">
+      <tr><th>ขั้น</th><th>เส้น</th><th>w</th><th>ผล</th><th>DSU Forest</th><th>ต้นทุนรวม</th></tr>
+      <tr><td>เริ่ม</td><td>–</td><td>–</td><td>–</td><td>{v₁}, {v₂}, {v₃}, {v₄}, {v₅}</td><td>0</td></tr>
+      <tr><td>1</td><td>(v₁, v₄)</td><td>1</td><td>✔ รับ</td><td>{v₁, v₄}, {v₂}, {v₃}, {v₅}</td><td>1</td></tr>
+      <tr><td>2</td><td>(v₁, v₂)</td><td>2</td><td>✔ รับ</td><td>{v₁, v₂, v₄}, {v₃}, {v₅}</td><td>3</td></tr>
+      <tr><td>3</td><td>(v₃, v₄)</td><td>2</td><td>✔ รับ</td><td>{v₁, v₂, v₃, v₄}, {v₅}</td><td>5</td></tr>
+      <tr><td>4</td><td>(v₂, v₄)</td><td>3</td><td>✘ ทิ้ง (set เดียวกัน)</td><td>เหมือนเดิม</td><td>5</td></tr>
+      <tr><td>5</td><td>(v₁, v₃)</td><td>4</td><td>✘ ทิ้ง (set เดียวกัน)</td><td>เหมือนเดิม</td><td>5</td></tr>
+      <tr><td>6</td><td>(v₃, v₅)</td><td>5</td><td>✔ รับ</td><td>{v₁, v₂, v₃, v₄, v₅}</td><td>10</td></tr>
+    </table></div>
+    <p>ได้ครบ |V| − 1 = 4 เส้น จึงหยุด (ไม่ต้องดูเส้น w = 8 และ 10) · <b>MST ต้นทุน 10</b> เท่ากับ Prim</p>
+
+    <h3>5.4 การประยุกต์ใช้ MST</h3>
+    <ul>
+      <li><b>ออกแบบเครือข่ายต้นทุนต่ำ:</b> วางสายไฟเบอร์ออปติก สายโทรศัพท์ โครงข่ายไฟฟ้า ท่อส่ง · เชื่อม N เมืองให้ต้นทุนรวมต่ำสุดโดยยัง connected</li>
+      <li><b>ประมาณคำตอบของปัญหา NP-Hard:</b> Metric Travelling Salesperson Problem (TSP) — ใช้ MST (+ DFS บน MST) สร้าง tour ที่ยาวไม่เกิน <b>2 เท่า</b> ของ tour ที่ดีที่สุด</li>
+      <li><b>Clustering:</b> สร้าง Single-Linkage Dendrogram ในการ clustering แบบลำดับชั้น · ลบ K − 1 เส้นที่ยาวที่สุดของ MST จะแบ่ง vertex เป็น K กลุ่มที่มี spacing สูงสุด</li>
+    </ul>
+
+    <!-- ===================== 6 ===================== -->
+    <h2 id="sp">6. Shortest Paths</h2>
+    <p><b>Single-Source Shortest-Path:</b> ให้ weighted graph G = (V, E) และต้นทาง s หา path ที่สั้นที่สุดจาก s ไป <b>ทุก</b> vertex</p>
+    <ul>
+      <li><b>Unweighted:</b> ทุกเส้นมีน้ำหนัก 1 → ใช้ BFS</li>
+      <li><b>Non-negative weights:</b> w(u, v) ≥ 0 ทุกเส้น → <b>Dijkstra</b></li>
+      <li><b>Negative weights:</b> บางเส้น w(u, v) &lt; 0 → ต้องใช้ <b>Bellman-Ford</b></li>
+      <li><b>Negative cycle:</b> ถ้ามี cycle ที่ผลรวมน้ำหนักติดลบ shortest path ไม่มีนิยาม (วนซ้ำได้เรื่อยๆ ให้ระยะ −∞)</li>
+    </ul>
+    <h3>6.1 Unweighted Shortest Path (BFS)</h3>
+    <p>BFS สำรวจทีละระดับ ครั้งแรกที่เห็น vertex คือ path ที่สั้นที่สุด · เก็บ dist และ path (parent) · <b>O(|V| + |E|)</b></p>
+    <div class="code"><div class="code-head"><span>C++ · unweightedShortestPath</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void Graph::unweightedShortestPath(int s) {
+    vector&lt;int&gt; dist(numVertices, INT_MAX);
+    vector&lt;int&gt; path(numVertices, -1);
+    queue&lt;int&gt; q;
+
+    dist[s] = 0;
+    q.push(s);
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : adjLists[u]) {
+            if (dist[v] == INT_MAX) {      // v ยังไม่ถูกเยี่ยม
+                dist[v] = dist[u] + 1;
+                path[v] = u;
+                q.push(v);
+            }
+        }
+    }
+}</code></pre></div>
+
+    <h3>6.2 Dijkstra's Algorithm</h3>
+    <p><b>Greedy:</b> รักษาเซตของ vertex ที่ "รู้ระยะสั้นสุดแล้ว" (known)</p>
+    <ol>
+      <li>เลือก vertex <i>u</i> ที่ยัง unknown ที่มี tentative distance d<sub>u</sub> <b>น้อยสุด</b></li>
+      <li>mark u เป็น known</li>
+      <li><b>Relax</b> ทุกเส้น (u, v) ที่ออกจาก u: ถ้า d<sub>u</sub> + w(u, v) &lt; d<sub>v</sub> ⟹ d<sub>v</sub> = d<sub>u</sub> + w(u, v)</li>
+    </ol>
+    <p><b>เงื่อนไข:</b> น้ำหนักทุกเส้นต้อง ≥ 0</p>
+    <div class="code"><div class="code-head"><span>C++ · Dijkstra (พร้อม path tracking)</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void Graph::Dijkstra(int s) {
+    vector&lt;int&gt; dist(numVertices, INT_MAX);
+    vector&lt;int&gt; parent(numVertices, -1);   // เก็บ predecessor
+    vector&lt;bool&gt; known(numVertices, false);
+    dist[s] = 0;
+
+    priority_queue&lt;pair&lt;int,int&gt;, vector&lt;pair&lt;int,int&gt;&gt;, greater&lt;pair&lt;int,int&gt;&gt;&gt; pq;
+    pq.push({0, s});
+
+    while (!pq.empty()) {
+        int u = pq.top().second; pq.pop();
+        if (known[u]) continue;
+        known[u] = true;
+
+        for (auto edge : adjLists[u]) {
+            int v = edge.dest, w = edge.weight;
+            if (dist[u] + w &lt; dist[v]) {
+                dist[v] = dist[u] + w;
+                parent[v] = u;              // บันทึก predecessor u
+                pq.push({dist[v], v});
+            }
+        }
+    }
+}</code></pre></div>
+    <p>เวอร์ชัน "distance only" เหมือนกันทุกประการ แต่ไม่มี <code>parent</code></p>
+    <h4>Trace: directed graph 5 vertex, ต้นทาง v₁</h4>
+    <p>เส้น: v₁→v₂ (5), v₁→v₄ (1), v₄→v₂ (2), v₄→v₃ (1), v₄→v₅ (9), v₃→v₅ (4), v₂→v₅ (2)</p>
+    <div class="scroll-x"><table class="data">
+      <tr><th>ขั้น</th><th>Process</th><th>Relax</th><th>d(v₂)</th><th>d(v₃)</th><th>d(v₄)</th><th>d(v₅)</th></tr>
+      <tr><td>เริ่ม</td><td>v₁</td><td>–</td><td>∞</td><td>∞</td><td>∞</td><td>∞</td></tr>
+      <tr><td>1</td><td>v₁</td><td>v₂ = 5, v₄ = 1</td><td>5</td><td>∞</td><td>1</td><td>∞</td></tr>
+      <tr><td>2</td><td>v₄</td><td>v₂ = 1+2 = 3, v₃ = 1+1 = 2, v₅ = 1+9 = 10</td><td>3</td><td>2</td><td><b>1</b></td><td>10</td></tr>
+      <tr><td>3</td><td>v₃</td><td>v₅ = 2+4 = 6</td><td>3</td><td><b>2</b></td><td>1</td><td>6</td></tr>
+      <tr><td>4</td><td>v₂</td><td>v₅ = 3+2 = 5</td><td><b>3</b></td><td>2</td><td>1</td><td>5</td></tr>
+      <tr><td>5</td><td>v₅</td><td>–</td><td>3</td><td>2</td><td>1</td><td><b>5</b></td></tr>
+    </table></div>
+
+    <h3>6.3 Shortest Path Reconstruction</h3>
+    <p>เก็บ <b>predecessor</b> p<sub>v</sub>: เมื่อ relax เส้น (u, v) แล้วอัปเดต d<sub>v</sub> ให้ตั้ง p<sub>v</sub> = u ด้วย · หลังจบ ย้อนจากปลายทางกลับต้นทาง: v → p<sub>v</sub> → p<sub>p<sub>v</sub></sub> → … → s</p>
+    <p><b>ตัวอย่าง (ไป v₅):</b> parent[v₅] = v₂ → parent[v₂] = v₄ → parent[v₄] = v₁ (ไม่มี parent = ต้นทาง) → path (ย้อนกลับแล้ว) = <b>v₁ → v₄ → v₂ → v₅</b> ต้นทุน <b>5</b></p>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Node</th><th>Known</th><th>Dist</th><th>Parent</th></tr>
+      <tr><td>v₁</td><td>T</td><td>0</td><td>–</td></tr>
+      <tr><td>v₂</td><td>T</td><td>3</td><td>v₄</td></tr>
+      <tr><td>v₃</td><td>T</td><td>2</td><td>v₄</td></tr>
+      <tr><td>v₄</td><td>T</td><td>1</td><td>v₁</td></tr>
+      <tr><td>v₅</td><td>T</td><td>5</td><td>v₂</td></tr>
+    </table></div>
+    <div class="code"><div class="code-head"><span>C++ · printPath</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void printPath(int v, const vector&lt;int&gt;&amp; parent) {
+    if (parent[v] != -1) {
+        printPath(parent[v], parent);
+        cout &lt;&lt; " -&gt; ";
+    }
+    cout &lt;&lt; v;
+}</code></pre></div>
+    <p>ใช้ได้ทั้งกับ Dijkstra (weighted) และ BFS (unweighted) · เวลา O(ความยาว path) ≤ O(|V|) · Space เพิ่ม O(|V|) จาก stack frame</p>
+
+    <h3>6.4 ทำไม Dijkstra ใช้กับ Negative Weight ไม่ได้</h3>
+    <p>Dijkstra อาศัยข้อเท็จจริงว่า เมื่อ vertex ถูก mark เป็น known แล้ว shortest path ของมัน <b>ไม่มีทางดีขึ้นอีก</b> เพราะ path ใดๆ ไปยัง vertex ที่ยัง unknown ต้องผ่าน vertex ที่ไกลอย่างน้อยเท่ากัน · ถ้ามีน้ำหนักลบ สมมติฐานนี้พัง: path ที่ดูยาวกว่าตอนแรกอาจสั้นลงเมื่อผ่านเส้นลบภายหลัง</p>
+    <div class="callout warn"><strong class="t">ตัวอย่างค้าน</strong>
+      เส้น s→a (3), s→b (4), b→a (−2) · เริ่ม: d<sub>a</sub> = 3, d<sub>b</sub> = 4 → pop a (3) mark known → pop b (4) mark known → relax (b, a): 4 − 2 = 2 &lt; 3 แต่ a เป็น known แล้ว Dijkstra ไม่แก้ → ได้ d<sub>a</sub> = 3 <b>ผิด</b> (path จริง s → b → a ต้นทุน <b>2</b>) · เลือก "ตัวอย่างน้ำหนักลบ" ใน Simulation เพื่อดู
+    </div>
+
+    <!-- ===================== 7 ===================== -->
+    <h2 id="sim">7. Simulation</h2>
+    <h3>7.1 Graph Algorithms</h3>
+    <p>เลือก algorithm, graph และต้นทาง แล้วกด <b>เริ่ม</b> เพื่อดูทีละขั้น (เล่นอัตโนมัติ หรือกดย้อน/ถัดไป) · ค่าเริ่มต้นคือตัวอย่างในสไลด์ · เลขเหนือ vertex คือ dist ปัจจุบัน · สีเขียวคือ visited / known</p>
+    <div class="sim">
+      <div class="sim-controls">
+        <select id="gr-alg" aria-label="Algorithm">
+          <option value="bfs">BFS (Unweighted Shortest Path)</option>
+          <option value="dfs">DFS</option>
+          <option value="prim">Prim (MST)</option>
+          <option value="kruskal">Kruskal (MST)</option>
+          <option value="dijkstra">Dijkstra</option>
+        </select>
+        <label class="chk">Graph <select id="gr-graph"></select></label>
+        <label class="chk">ต้นทาง <select id="gr-src"></select></label>
+        <label class="chk">ปลายทาง <select id="gr-tgt"></select></label>
+        <button id="gr-run" class="primary" type="button">เริ่ม</button>
+      </div>
+      <div id="gr-msg" class="sim-msg" aria-live="polite"></div>
+      <div id="gr-view" class="gview" style="text-align:center"></div>
+      <div class="sim-legend">
+        <span><i style="background:var(--accent)"></i>vertex ที่กำลังทำ</span>
+        <span><i style="background:var(--cmp)"></i>อยู่ใน queue / stack</span>
+        <span><i style="background:var(--done)"></i>เสร็จ / known</span>
+        <span><i style="background:var(--ok);border-radius:0;height:4px;margin-top:4px"></i>Tree / MST edge</span>
+        <span><i style="background:var(--hole-stroke);border-radius:0;height:4px;margin-top:4px"></i>Back / ทิ้ง</span>
+      </div>
+      <div id="gr-panels" class="gpanels"></div>
+      <div class="sim-nav">
+        <button id="gr-prev" type="button">◀ ย้อน</button>
+        <button id="gr-play" class="primary" type="button">▶ เล่น</button>
+        <button id="gr-next" type="button">ถัดไป ▶</button>
+        <label>ช้า <input type="range" id="gr-speed" min="400" max="2200" step="100" value="1300" style="direction:rtl;vertical-align:middle"> เร็ว</label>
+      </div>
+    </div>
+    <div class="callout"><strong class="t">ลองดู</strong>
+      <ul style="margin:6px 0 0">
+        <li>BFS/DFS ต้นทาง v₃ เทียบกับตารางใน 3.1 และลำดับ call stack ใน 3.2 · ลองเปลี่ยนเป็น v₁ แล้วเทียบแบบฝึกหัด</li>
+        <li>DFS: สังเกตเส้น back edge (v₄ → v₃, แดงประ) และเส้น forward/cross (เทาจุด) ที่สไลด์ไม่ได้แยกสี</li>
+        <li>Prim vs Kruskal: ได้ MST ต้นทุน 10 เท่ากัน แต่เลือกเส้นตามลำดับต่างกัน (Prim โตทีละ vertex, Kruskal เลือกเส้นถูกสุดทั่วกราฟ)</li>
+        <li>Dijkstra: ปลายทาง v₅ ได้ v₁ → v₄ → v₂ → v₅ · แล้วลอง "ตัวอย่างน้ำหนักลบ"</li>
+      </ul>
+    </div>
+
+    <h3>7.2 Disjoint Sets</h3>
+    <p>ใส่ <b>a, b</b> แล้วกด <b>union(a, b)</b> หรือ <b>find(a)</b> · เลือก strategy และเปิด/ปิด path compression · โครงสร้างแสดงเป็นป่า (root มีเส้นหนา) และ array <code>s[i]</code> (ค่าลบ = root เก็บขนาด/ความสูง) · ลองกด <b>สร้าง chain</b> (union(1,0), union(2,1), …) ภายใต้แต่ละ strategy แล้วเทียบ "ความลึกมากสุด"</p>
+    <div class="sim">
+      <div class="sim-controls">
+        <label class="chk">จำนวน element
+          <select id="ds-n"><option value="6">6</option><option value="8" selected>8</option><option value="10">10</option></select></label>
+        <select id="ds-strategy" aria-label="strategy">
+          <option value="simple">Simple Union</option>
+          <option value="size" selected>Union-by-Size</option>
+          <option value="height">Union-by-Height</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="ds-compress" checked> path compression</label>
+      </div>
+      <div class="sim-controls">
+        <input type="number" id="ds-a" placeholder="a" min="0" aria-label="a" style="width:70px">
+        <input type="number" id="ds-b" placeholder="b" min="0" aria-label="b" style="width:70px">
+        <button id="ds-union" class="primary" type="button">union(a, b)</button>
+        <button id="ds-find" type="button">find(a)</button>
+        <span class="spacer"></span>
+        <button id="ds-chain" class="ghost" type="button">สร้าง chain</button>
+        <button id="ds-random" class="ghost" type="button">สุ่ม union</button>
+        <button id="ds-reset" class="ghost" type="button">รีเซ็ต</button>
+      </div>
+      <div id="ds-msg" class="sim-msg" aria-live="polite"></div>
+      <div id="ds-stats" class="sim-stats"></div>
+      <div id="ds-view" class="dsu-tree" style="text-align:center"></div>
+      <div class="sim-legend">
+        <span><i style="background:var(--cmp)"></i>path ของ find / a</span>
+        <span><i style="background:var(--hole);border-color:var(--hole-stroke)"></i>b / ต้นไม้ที่ถูกต่อ</span>
+        <span><i style="background:var(--done)"></i>root ใหม่ / node ที่ถูก compress</span>
+      </div>
+      <div class="sim-nav">
+        <button id="ds-prev" type="button">◀ ย้อน</button>
+        <button id="ds-play" class="primary" type="button">▶ เล่น</button>
+        <button id="ds-next" type="button">ถัดไป ▶</button>
+        <label>ช้า <input type="range" id="ds-speed" min="300" max="1800" step="100" value="1000" style="direction:rtl;vertical-align:middle"> เร็ว</label>
+      </div>
+    </div>
+
+    <h3>7.3 Dynamic Maze Generation</h3>
+    <p>กด <b>ตามสไลด์</b> เพื่อดูตาราง 3 × 3 ที่เลือกกำแพงตามลำดับในสไลด์ หรือ <b>สุ่ม</b> เพื่อสร้าง maze ใหม่ (เลือกขนาดได้) · เส้นเขียวประ = กำแพงที่เพิ่งถูกทุบ · เส้นแดง = ถูกปฏิเสธ เพราะสองช่องอยู่ set เดียวกันแล้ว</p>
+    <div class="sim">
+      <div class="sim-controls">
+        <label class="chk">ขนาด
+          <select id="mz-n"><option value="3" selected>3 × 3</option><option value="4">4 × 4</option><option value="5">5 × 5</option></select></label>
+        <button id="mz-slide" class="primary" type="button">ตามสไลด์ (3×3)</button>
+        <button id="mz-random" type="button">สุ่ม</button>
+      </div>
+      <div id="mz-msg" class="sim-msg" aria-live="polite"></div>
+      <div id="mz-view" class="maze" style="text-align:center"></div>
+      <div class="sim-stats">Disjoint Sets: <span id="mz-sets"></span></div>
+      <div class="sim-nav">
+        <button id="mz-prev" type="button">◀ ย้อน</button>
+        <button id="mz-play" class="primary" type="button">▶ เล่น</button>
+        <button id="mz-next" type="button">ถัดไป ▶</button>
+        <label>ช้า <input type="range" id="mz-speed" min="300" max="1800" step="100" value="1000" style="direction:rtl;vertical-align:middle"> เร็ว</label>
+      </div>
+    </div>
+
+    <!-- ===================== 8 ===================== -->
+    <h2 id="summary">8. สรุป &amp; แบบฝึกหัด</h2>
+    <div class="scroll-x"><table class="data">
+      <tr><th>หัวข้อ</th><th>สิ่งที่ต้องจำ</th></tr>
+      <tr><td>Representation</td><td style="text-align:left">Matrix O(|V|²) เช็กเส้น O(1) · List O(|V|+|E|) (default สำหรับ sparse) · Edge List O(|E|) (เหมาะกับ Kruskal)</td></tr>
+      <tr><td>BFS</td><td style="text-align:left">queue · ระดับต่อระดับ · shortest path แบบ unweighted · O(|V|+|E|)</td></tr>
+      <tr><td>DFS</td><td style="text-align:left">stack / recursion · tree edge, back edge · O(|V|+|E|)</td></tr>
+      <tr><td>Disjoint Set</td><td style="text-align:left">find / union · union-by-size/height ให้ความลึก O(log N) · + path compression ≈ O(1) ต่อ operation (α ≤ 4)</td></tr>
+      <tr><td>Spanning Tree</td><td style="text-align:left">|V| − 1 เส้น · MST = ผลรวมน้ำหนักต่ำสุด</td></tr>
+      <tr><td>Prim</td><td style="text-align:left">โตทีละ vertex เลือกเส้นถูกสุดที่ออกจากต้นไม้ · priority queue · d<sub>v</sub> = c(u, v)</td></tr>
+      <tr><td>Kruskal</td><td style="text-align:left">เรียงเส้น แล้วรับเส้นที่ไม่เกิด cycle (ตรวจด้วย DSU)</td></tr>
+      <tr><td>Dijkstra</td><td style="text-align:left">เลือก unknown ที่ d น้อยสุด → relax · ต้อง w ≥ 0 · เก็บ parent เพื่อ reconstruct path</td></tr>
+    </table></div>
+    <p class="muted" style="font-size:.9rem">หมายเหตุ: ต้นทุนเวลาของ Prim / Dijkstra ที่ใช้ priority queue คือ O(|E| log |V|) และของ Kruskal คือ O(|E| log |E|) (จากการเรียงเส้น) เป็นความรู้มาตรฐาน — สไลด์ไม่ได้ระบุไว้ตรงๆ</p>
+
+    <h3>แบบฝึกหัด</h3>
+    <details><summary>1) undirected complete graph K₅ มีกี่เส้น? และ spanning tree ของกราฟ 5 vertex มีกี่เส้น?</summary>
+      K₅ มี |V|(|V|−1)/2 = 5·4/2 = <b>10 เส้น</b> · spanning tree มี |V| − 1 = <b>4 เส้น</b></details>
+    <details><summary>2) กราฟมี 1,000 vertex และ 5,000 เส้น ควรใช้ adjacency matrix หรือ adjacency list? เทียบ space</summary>
+      Matrix ใช้ |V|² = 1,000,000 ช่อง · List ใช้ |V| + |E| = 6,000 ช่อง (โดยประมาณ) → graph นี้ sparse (5,000 ≪ 10⁶) ใช้ <b>adjacency list</b></details>
+    <details><summary>3) BFS บนกราฟ 7 vertex ในสไลด์ เริ่มที่ v₁ ได้ลำดับการเยี่ยมและ dist เป็นอย่างไร?</summary>
+      ลำดับเยี่ยม: <b>v₁, v₂, v₄, v₅, v₃, v₆, v₇</b> · dist: v₁ = 0 · v₂ = 1, v₄ = 1 · v₅ = 2, v₃ = 2, v₆ = 2, v₇ = 2 (ทั้ง v₃, v₆, v₇ มาจาก v₄ และ v₅ มาจาก v₂)</details>
+    <details><summary>4) DFS บนกราฟเดียวกัน เริ่มที่ v₁ ได้ลำดับอย่างไร? มี back edge ไหม?</summary>
+      ลำดับเยี่ยม: <b>v₁, v₂, v₄, v₃, v₆, v₅, v₇</b> (v₂ ไป v₄ ก่อน v₅ ตามลำดับ adjacency · v₄ ไป v₃ → v₃ ไป v₁ ซึ่งเยี่ยมแล้วและอยู่ใน stack → <b>back edge v₃ → v₁</b> · v₃ → v₆ → ย้อนกลับ v₄ ไป v₅ → v₇)</details>
+    <details><summary>5) Union-by-Size: n = 5 (index 0..4) ทำ union(0,1), union(2,3), union(1,3) แล้ว array s เป็นอย่างไร?</summary>
+      union(0,1): ขนาดเท่ากัน → s[1] = 0, s[0] = −2 · union(2,3): s[3] = 2, s[2] = −2 · union(1,3): find(1) = 0, find(3) = 2 ขนาดเท่ากัน (−2) → ต่อ root2 = 2 เป็นลูกของ root1 = 0: s[0] = −4, s[2] = 0 · ผล: <b>s = [−4, 0, 0, 2, −1]</b> (ความลึกสูงสุด 2: 3 → 2 → 0)</details>
+    <details><summary>6) ทำไม Union-by-Size การันตีความลึกไม่เกิน ⌊log₂ N⌋?</summary>
+      node หนึ่งจะลึกขึ้น 1 ระดับเมื่อ tree ของมันถูกต่อเป็นลูกของ tree ที่ <b>ใหญ่กว่าหรือเท่ากัน</b> ซึ่งทำให้ขนาดของ set ที่ node อยู่ <b>อย่างน้อยเพิ่มเป็น 2 เท่า</b> · ขนาดไม่เกิน N จึงเพิ่มเป็นสองเท่าได้ไม่เกิน log₂ N ครั้ง → ความลึก ≤ ⌊log₂ N⌋</details>
+    <details><summary>7) Kruskal กับ Prim ต่างกันอย่างไร ในแง่โครงสร้างข้อมูลที่ใช้และมุมมอง?</summary>
+      <b>Prim:</b> โตต้นไม้เดียวทีละ vertex ใช้ priority queue เลือกเส้นถูกสุดที่ออกจากต้นไม้ (คล้าย Dijkstra) · <b>Kruskal:</b> เรียงเส้นทั้งกราฟแล้วรักษา forest ใช้ Disjoint Set ตรวจ cycle เหมาะกับ edge list · ทั้งคู่เป็น greedy และให้ MST ต้นทุนเท่ากัน (กราฟตัวอย่าง = 10)</details>
+    <details><summary>8) Dijkstra จากกราฟของ 6.2 ถ้าเริ่มที่ v₂ ระยะไป v₅ เป็นเท่าไร? และทำไม Dijkstra ผิดเมื่อมีน้ำหนักลบ?</summary>
+      จาก v₂ มีเส้นออกเส้นเดียวคือ v₂ → v₅ (2) ดังนั้นระยะไป v₅ = <b>2</b> (v₁, v₃, v₄ ไปไม่ถึง) · น้ำหนักลบทำให้ vertex ที่ mark known ไปแล้วอาจมีทางที่สั้นกว่าในภายหลัง แต่ Dijkstra ไม่กลับไปแก้ (เช่น s→a (3), s→b (4), b→a (−2): ได้ d<sub>a</sub> = 3 แต่จริงคือ 2)</details>
+
+    <div class="pager"><a href="chapter-10.html">← บทที่ 10</a><span></span></div>
+  </article>
+</div>
+
+<footer>204252 Data Structures and Analysis · Computer Science Department</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+<script src="../assets/graph.js"></script>
+<script src="../assets/dsu.js"></script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  document.querySelectorAll('.code-head button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.closest('.code').querySelector('code').innerText;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+        b.textContent = 'คัดลอกแล้ว ✔'; setTimeout(function () { b.textContent = 'คัดลอก'; }, 1500);
+      }, function () {});
+    });
+  });
+  // เน้นหัวข้อปัจจุบันใน TOC
+  var links = [].slice.call(document.querySelectorAll('.toc a'));
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (e.isIntersecting) links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article h2[id]').forEach(function (h) { io.observe(h); });
+</script>
+</body>
+</html>
