@@ -154,6 +154,32 @@ table.data tr.best td { background: var(--done); }
 .arr td.cmp { background: var(--cmp); }
 .arr td.done { background: var(--done); }
 
+.arr td.empty { color: var(--muted); }
+.arr td.del { background: var(--hole); text-decoration: line-through; }
+.arr td.cmp.del { background: var(--cmp); }
+
+/* hash table views */
+.ht-chain { display: inline-block; text-align: left; margin: 8px auto; font-family: var(--font-code); font-size: .88rem; }
+.ht-row { display: flex; align-items: center; min-height: 30px; }
+.ht-i { width: 26px; text-align: right; margin-right: 8px; color: var(--muted); font-size: .78rem; }
+.ht-head { width: 44px; height: 24px; border: 1.5px solid var(--node-stroke); background: var(--node); }
+.ht-node { min-width: 34px; padding: 1px 8px; text-align: center; border: 1.5px solid var(--node-stroke); border-radius: 10px; background: var(--node); }
+.ht-arrow { margin: 0 5px; color: var(--muted); }
+.ht-head.cmp, .ht-node.cmp { background: var(--cmp); }
+.ht-head.done, .ht-node.done { background: var(--done); }
+.ht-head.hole, .ht-node.del { background: var(--hole); border-color: var(--hole-stroke); }
+.ht-log { font-size: .92rem; line-height: 1.6; margin: 8px 0 0; }
+div[data-ht] { text-align: center; }
+div[data-ht].grid2 { text-align: left; }
+div[data-ht] .ht-log { text-align: left; }
+.muted { color: var(--muted); }
+.sim select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: .92rem; }
+.sim-stats { text-align: center; font-family: var(--font-code); font-size: .9rem; margin: 4px 0; }
+.sim label.chk { font-size: .88rem; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; }
+.sim .ht-stage { min-height: 120px; text-align: center; max-height: 520px; overflow: auto; }
+#hs-input { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; width: 180px; }
+#hs-size { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; width: 90px; }
+
 /* simulator */
 .sim { background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; padding: 16px; margin: 20px 0; }
 .sim-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }

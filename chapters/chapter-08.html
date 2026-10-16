@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>บทที่ 8 Hashing | 204252 Final</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+<nav class="topbar">
+  <a href="../index.html">204252 Final</a><span class="sep">/</span><span class="crumb">บทที่ 8 Hashing</span>
+</nav>
+
+<div class="layout">
+  <aside class="toc"><ol id="toc-list">
+    <li><a href="#concept">1. แนวคิด Hashing</a></li>
+    <li><a href="#func">2. Hash Function</a></li>
+    <li><a href="#ideal">3. Ideal Hashing Trace</a></li>
+    <li><a href="#chain">4. Separate Chaining</a></li>
+    <li><a href="#linear">5. Linear Probing</a></li>
+    <li><a href="#quad">6. Quadratic Probing</a></li>
+    <li><a href="#double">7. Double Hashing</a></li>
+    <li><a href="#rehash">8. Rehashing</a></li>
+    <li><a href="#sim">9. Simulation</a></li>
+    <li><a href="#summary">10. Complexity, สรุป &amp; แบบฝึกหัด</a></li>
+  </ol></aside>
+
+  <article>
+    <h1>บทที่ 8: Hashing</h1>
+    <p class="subtitle">204252 Data Structures and Analysis · อ้างอิงสไลด์ Part 1–2 ของ Thapanapong Rukkanchanunt และ Jakarin Chawachat</p>
+
+    <!-- ===================== 1 ===================== -->
+    <h2 id="concept">1. แนวคิด Hashing</h2>
+    <h3>1.1 ปัญหาการค้นหา (ทบทวน)</h3>
+    <ul>
+      <li><b>Array / List</b>: ค้นหา O(N) (ไม่เรียง) หรือ O(log N) (เรียงแล้วใช้ binary search)</li>
+      <li><b>Binary Search Tree</b>: เฉลี่ย O(log N) แต่ถ้าไม่สมดุลแย่สุดเป็น O(N)</li>
+      <li><b>Balanced Search Tree (AVL, B-Tree)</b>: การันตี O(log N) ทั้ง search / insert / delete</li>
+    </ul>
+    <div class="callout"><strong class="t">เป้าหมายของ Hashing</strong>
+      ทำ search, insert, delete ได้ใน <b>เวลาคงที่เฉลี่ย O(1)</b> ได้ไหม?
+    </div>
+
+    <h3>1.2 Direct Address Table (DAT)</h3>
+    <p>ถ้า key เป็นจำนวนเต็มไม่ซ้ำในช่วงเล็กๆ <code>[0, U−1]</code> ก็ใช้ key เป็น index ของ array ได้ตรงๆ: เก็บด้วย <code>T[k] = element</code> และค้นหาด้วยการอ่าน <code>T[k]</code> ใน O(1)</p>
+    <div class="callout warn"><strong class="t">ข้อเสีย</strong>
+      ถ้า universe ของ key <i>U</i> ใหญ่มาก (เช่น รหัสนักศึกษา 9 หลัก → U = 10⁹) แต่เก็บจริงแค่ N = 100 ตัว จะเปลืองหน่วยความจำมหาศาล
+    </div>
+
+    <h3>1.3 Hash Table</h3>
+    <p>แก้ปัญหาโดยแมป key จาก universe <i>U</i> ขนาดใหญ่ ไปยังตาราง <code>T</code> ขนาด <i>M</i> ที่เล็กกว่ามาก (M ≪ U) ด้วย <b>Hash Function</b> <i>h</i></p>
+    <ul>
+      <li><b>Hash Function</b> <i>h</i>: ฟังก์ชันที่แมป key <i>k</i> ไปเป็น index <i>i = h(k)</i> ในช่วง <code>[0, M−1]</code></li>
+      <li><b>Hash Value</b>: จำนวนเต็ม <i>h(k)</i> คือช่อง (slot) ที่ key นั้นถูกเก็บ</li>
+      <li><b>Hash Table</b>: array ขนาด <i>M</i> ที่เก็บข้อมูล</li>
+    </ul>
+    <div class="scroll-x"><table class="data">
+      <tr><th>คุณสมบัติ</th><th>Direct Address Table</th><th>Hash Table</th></tr>
+      <tr><td>ขนาดตาราง</td><td>เท่ากับ universe <i>U</i> (ใหญ่มาก)</td><td>สัมพันธ์กับข้อมูลจริง M ≈ N</td></tr>
+      <tr><td>Space</td><td>O(U)</td><td>O(M + N)</td></tr>
+      <tr><td>Search</td><td>O(1) การันตี</td><td>O(1) เฉลี่ย, O(N) แย่สุด</td></tr>
+      <tr><td>Collision</td><td>เกิดไม่ได้ (1 key ต่อ 1 ช่อง)</td><td>เกิดได้ (หลาย key ลงช่องเดียวกัน)</td></tr>
+      <tr><td>ชนิดของ key</td><td>จำนวนเต็มเท่านั้น</td><td>ชนิดใดก็ได้ (ผ่าน hash function ที่เขียนเอง)</td></tr>
+    </table></div>
+
+    <h3>1.4 Collision</h3>
+    <p>เพราะ M ≪ U ตาม <b>Pigeonhole Principle</b> ย่อมมี key บางตัวลงช่องเดียวกันแน่นอน</p>
+    <div class="callout"><strong class="t">นิยาม Collision</strong>
+      เกิดเมื่อ key สองตัวที่ต่างกัน <i>k₁ ≠ k₂</i> มี hash value เท่ากัน: <b>h(k₁) = h(k₂)</b><br>
+      ตัวอย่าง <code>h(k) = k mod 10</code>: h(15) = 5 และ h(25) = 5 → ชนกันที่ช่อง 5 ต้องมีวิธีแก้ (collision resolution)
+    </div>
+
+    <!-- ===================== 2 ===================== -->
+    <h2 id="func">2. Hash Function</h2>
+    <h3>2.1 เป้าหมายในการออกแบบ</h3>
+    <ol>
+      <li><b>คำนวณง่ายและเร็ว</b> — ใช้เวลา O(1) เทียบกับขนาดตาราง</li>
+      <li><b>กระจายสม่ำเสมอ (Uniform Distribution)</b> — กระจาย key ให้ทั่วทุกช่องเพื่อลด collision</li>
+    </ol>
+    <div class="callout"><strong class="t">ทำไม TableSize ควรเป็นจำนวนเฉพาะ (prime)?</strong>
+      ถ้า key ไม่สุ่มจริง (เช่น มีตัวประกอบร่วมกัน เป็นพหุคูณของ 10) การเลือกขนาดตารางเป็น prime ช่วยให้ key กระจายทั่วตารางภายใต้ modulo และป้องกัน clustering
+    </div>
+
+    <h3>2.2 Hash Function สำหรับจำนวนเต็ม</h3>
+    <p>วิธีมาตรฐานคือ <code>h(k) = k mod TableSize</code></p>
+    <div class="grid2">
+      <div class="step"><h4>✘ ตัวอย่างไม่ดี: TableSize = 10</h4>
+        <p>ถ้า key ทั้งหมดลงท้ายด้วย 0 เช่น 10, 20, 110, 250 → h = 0, 0, 0, 0<br>ทุกตัวลงช่อง 0 → collision 100% และ search กลายเป็น <b>O(N)</b></p></div>
+      <div class="step"><h4>✔ ตัวอย่างดี: TableSize = 11 (prime)</h4>
+        <p>10 mod 11 = <b>10</b> · 20 mod 11 = <b>9</b> · 110 mod 11 = <b>0</b> · 250 mod 11 = <b>8</b><br>กระจายออกไปคนละช่อง</p></div>
+    </div>
+
+    <h3>2.3 Hash Function สำหรับ String</h3>
+    <h4>Method 1: ผลรวมรหัส ASCII</h4>
+    <div class="code"><div class="code-head"><span>C++ · Simple ASCII Sum</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">int hash( const string &amp; key, int tableSize )
+{
+    int hashVal = 0;
+    for( char ch : key )
+        hashVal += ch;
+    return hashVal % tableSize;
+}</code></pre></div>
+    <p><b>ข้อเสีย: กระจายไม่ดี</b> เช่น TableSize = 10,007 และ key ยาวไม่เกิน 8 ตัวอักษร (ASCII ≤ 127) ผลรวมมากสุดคือ 127 × 8 = 1,016 → ช่อง [1017, 10006] <b>ไม่ถูกใช้เลย!</b></p>
+
+    <h4>Method 2: ถ่วงน้ำหนัก 3 ตัวแรก</h4>
+    <div class="code"><div class="code-head"><span>C++ · Weighted First 3 Chars</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">int hash( const string &amp; key, int tableSize )
+{
+    return ( key[ 0 ] + 27 * key[ 1 ] +
+             729 * key[ 2 ] ) % tableSize;
+}</code></pre></div>
+    <ul>
+      <li>สมมติ key ยาว ≥ 3 ตัวอักษร · 27 = ตัวอักษร 26 ตัว + ช่องว่าง, 729 = 27²</li>
+      <li><b>ข้อเสีย:</b> ภาษาอังกฤษไม่สุ่ม — จาก 17,576 combination ของ 3 ตัวอักษร มีที่ปรากฏจริงเพียง 2,851 แบบ → ใช้ตารางแค่ ~<b>28%</b> แม้ในกรณีดีที่สุด</li>
+    </ul>
+
+    <h4>Method 3: Polynomial Rolling Hash (Horner's Rule)</h4>
+    <div class="code"><div class="code-head"><span>C++ · Horner's Rule</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">unsigned int hash( const string &amp; key, int tableSize )
+{
+    unsigned int hashVal = 0;
+    for( char ch : key )
+        hashVal = 37 * hashVal + ch;
+    return hashVal % tableSize;
+}</code></pre></div>
+    <ul>
+      <li>คำนวณ H = Σ key[L−1−i] · 37<sup>i</sup> โดยใช้ตัวอักษร <b>ทุกตัว</b></li>
+      <li>ใช้ Horner's rule คำนวณ polynomial อย่างมีประสิทธิภาพ: ((k₂ · 37 + k₁) · 37) + k₀</li>
+      <li>ใช้ <code>unsigned int</code> จึงไม่เกิดปัญหา overflow แบบ undefined (ค่าจะ wrap-around)</li>
+    </ul>
+
+    <h3>2.4 Trace: Horner's Rule กับ "cat"</h3>
+    <p>ASCII: <code>'c'</code> = 99, <code>'a'</code> = 97, <code>'t'</code> = 116 · multiplier = 37</p>
+    <div class="grid2">
+      <div class="step"><h4>Step 1: เริ่มต้น</h4><p>hashVal = 0</p></div>
+      <div class="step"><h4>Step 2: 'c'</h4><p>hashVal = 37 × 0 + 99 = <b>99</b></p></div>
+      <div class="step"><h4>Step 3: 'a'</h4><p>hashVal = 37 × 99 + 97 = 3663 + 97 = <b>3760</b></p></div>
+      <div class="step"><h4>Step 4: 't'</h4><p>hashVal = 37 × 3760 + 116 = 139120 + 116 = <b>139236</b><br>Index = 139236 mod TableSize</p></div>
+    </div>
+
+    <h3>ลองเอง: คำนวณ hash ของ string</h3>
+    <div class="sim">
+      <div class="sim-controls">
+        <input type="text" id="hs-input" value="cat" aria-label="string">
+        <label class="chk">TableSize <input type="number" id="hs-size" value="11" min="2"></label>
+      </div>
+      <div id="hs-out"></div>
+    </div>
+
+    <!-- ===================== 3 ===================== -->
+    <h2 id="ideal">3. Ideal Hashing Trace</h2>
+    <p>ลอง insert "john", "phil", "dave", "mary" ลง Hash Table ขนาด 10 (<code>T[0..9]</code>) โดยสมมติว่ามี hash function ในอุดมคติที่ให้ h("john") = 3, h("phil") = 4, h("dave") = 6, h("mary") = 7 — ไม่มี collision เลย แต่ละตัวลงช่องของตัวเองตรงๆ:</p>
+    <div class="scroll-x"><table class="arr">
+      <tr><th>i</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th></tr>
+      <tr><th>key</th><td class="empty">–</td><td class="empty">–</td><td class="empty">–</td><td class="done">john</td><td class="done">phil</td><td class="empty">–</td><td class="done">dave</td><td class="done">mary</td><td class="empty">–</td><td class="empty">–</td></tr>
+    </table></div>
+    <p>ลำดับ: Step 1 john → 3 · Step 2 phil → 4 · Step 3 dave → 6 · Step 4 mary → 7 · ในโลกจริง hash function ไม่ได้ดีขนาดนี้ จึงต้องมีวิธีจัดการ collision ในหัวข้อถัดไป</p>
+
+    <!-- ===================== 4 ===================== -->
+    <h2 id="chain">4. Separate Chaining</h2>
+    <p>วิธีแก้ collision แบบแรก: ให้แต่ละช่องของตารางเก็บ <b>linked list</b> ของทุกตัวที่ hash ไปช่องนั้น</p>
+    <ul>
+      <li><b>Search:</b> hash หาช่อง แล้วเดินไล่ list</li>
+      <li><b>Insert:</b> เช็กใน list ว่าซ้ำไหม ถ้าไม่ซ้ำ ใส่ที่ <b>หัว (front)</b> ของ list (สะดวก และได้ temporal locality)</li>
+      <li><b>Delete:</b> หา node ใน list แล้วลบทิ้ง</li>
+    </ul>
+    <div class="callout"><strong class="t">Load Factor λ</strong>
+      λ = N / TableSize สำหรับ separate chaining ค่าที่ดีคือ <b>λ ≈ 1</b> · ความยาว list เฉลี่ย = λ
+    </div>
+
+    <h3>4.1 โค้ด C++</h3>
+    <div class="code"><div class="code-head"><span>C++ · Separate Chaining: class interface</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename HashedObj&gt;
+class HashTable {
+public:
+    explicit HashTable( int size = 101 ) : theLists( nextPrime( size ) ), currentSize{ 0 } {}
+    bool contains( const HashedObj &amp; x ) const;
+    void makeEmpty();
+    bool insert( const HashedObj &amp; x );
+    bool remove( const HashedObj &amp; x );
+private:
+    vector&lt;list&lt;HashedObj&gt;&gt; theLists;   // array of linked lists
+    int currentSize;
+    void rehash();
+    size_t myhash( const HashedObj &amp; x ) const {
+        static hash&lt;HashedObj&gt; hf;
+        return hf( x ) % theLists.size();
+    }
+};</code></pre></div>
+    <div class="code"><div class="code-head"><span>C++ · Separate Chaining: contains / insert / remove</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename HashedObj&gt;
+bool HashTable&lt;HashedObj&gt;::contains( const HashedObj &amp; x ) const {
+    auto &amp; whichList = theLists[ myhash( x ) ];
+    return find( begin( whichList ), end( whichList ), x ) != end( whichList );
+}
+
+template &lt;typename HashedObj&gt;
+bool HashTable&lt;HashedObj&gt;::insert( const HashedObj &amp; x ) {
+    auto &amp; whichList = theLists[ myhash( x ) ];
+    if ( find( begin( whichList ), end( whichList ), x ) != end( whichList ) )
+        return false;                        // Duplicate
+    whichList.push_back( x );
+    if ( ++currentSize &gt; theLists.size() )
+        rehash();                            // Load factor &gt; 1
+    return true;
+}
+
+template &lt;typename HashedObj&gt;
+bool HashTable&lt;HashedObj&gt;::remove( const HashedObj &amp; x ) {
+    auto &amp; whichList = theLists[ myhash( x ) ];
+    auto itr = find( begin( whichList ), end( whichList ), x );
+    if ( itr == end( whichList ) ) return false;   // Not found
+    whichList.erase( itr );
+    --currentSize;
+    return true;
+}</code></pre></div>
+    <div class="callout warn"><strong class="t">หมายเหตุ</strong>
+      โค้ดข้างบนใช้ <code>push_back</code> (ใส่ท้าย list) แต่ใน trace ของสไลด์ใส่ที่ <b>หัว list</b> — ต่างกันแค่ลำดับใน list ไม่กระทบความถูกต้อง · Simulator ในหน้านี้ใช้ตามสไลด์ (ใส่หัว list)
+    </div>
+
+    <h3>4.2 Trace: insert ค่ากำลังสอง 0, 1, 4, 9, 16, 25, 36, 49, 64, 81 (h(x) = x mod 10)</h3>
+    <div data-ht="chain" data-size="10" data-keys="0,1,4,9,16,25,36,49,64,81" data-log></div>
+
+    <h3>4.3 Trace: Search / Remove จากตารางข้างบน</h3>
+    <ol>
+      <li><b>Search 36 (สำเร็จ):</b> h(36) = 6 → list ช่อง 6 คือ [36 → 16] → node แรกคือ 36 → <b>พบ</b> (เทียบ 1 ครั้ง)</li>
+      <li><b>Search 56 (ไม่สำเร็จ):</b> h(56) = 6 → เทียบกับ 36 ไม่ตรง → เทียบกับ 16 ไม่ตรง → ถึงท้าย list → <b>ไม่พบ</b> (เทียบ 2 ครั้ง)</li>
+      <li><b>Remove 16:</b> h(16) = 6 → node แรก 36 ไม่ตรง → node สอง 16 ตรง → ลบและต่อ link → ช่อง 6 เหลือ [36]</li>
+    </ol>
+    <p>ลองทั้งหมดนี้ได้ใน <a href="#sim">Simulation</a> (เลือก Separate Chaining)</p>
+
+    <!-- ===================== 5 ===================== -->
+    <h2 id="linear">5. Open Addressing: Linear Probing</h2>
+    <p>ใน <b>Open Addressing</b> ข้อมูลทุกตัวเก็บ <b>ในตัว array เอง</b> — ไม่มี linked list เมื่อชนจะลองช่องอื่นไปเรื่อยๆ จนเจอช่องว่าง:</p>
+    <div class="callout"><strong class="t">Probing Sequence</strong>
+      h<sub>i</sub>(x) = ( h(x) + f(i) ) mod TableSize &nbsp;โดย f(i) คือ collision resolution function และ f(0) = 0
+    </div>
+    <h4>ข้อจำกัดของ Open Addressing</h4>
+    <ul>
+      <li>ต้องใช้ตารางใหญ่กว่า separate chaining</li>
+      <li>ต้องคุม load factor ให้ <b>λ &lt; 0.5</b></li>
+      <li><b>Deletion:</b> ลบจริงๆ ไม่ได้ เพราะจะตัด search path ของ key อื่น ต้องใช้ <b>Lazy Deletion</b> — ทำเครื่องหมายช่องเป็น <code>DELETED</code> แทน</li>
+    </ul>
+
+    <h3>5.1 Linear Probing: f(i) = i</h3>
+    <p>ตรวจช่องถัดไปตามลำดับ (วนกลับต้นตารางเมื่อถึงท้าย)</p>
+    <div class="callout warn"><strong class="t">Primary Clustering</strong>
+      ช่องที่ถูกใช้จะรวมเป็นก้อนติดกัน (cluster) — key ใดที่ hash เข้า cluster ต้อง probe ผ่านทั้งก้อน และทำให้ก้อนยิ่งใหญ่ขึ้น · จำนวน probe เฉลี่ยของ insert / unsuccessful search ≈ <b>½ (1 + 1/(1−λ)²)</b> พุ่งเร็วมากเมื่อ λ → 1
+    </div>
+
+    <h3>5.2 Trace: insert 89, 18, 49, 58, 69 (M = 10, h(k) = k mod 10)</h3>
+    <div data-ht="linear" data-size="10" data-keys="89,18,49,58,69" data-cards></div>
+
+    <!-- ===================== 6 ===================== -->
+    <h2 id="quad">6. Open Addressing: Quadratic Probing</h2>
+    <p><b>f(i) = i²</b> — ตรวจช่องที่ห่างไป +1, +4, +9, +16, … จากตำแหน่ง hash เริ่มต้น</p>
+    <ul>
+      <li>ขจัด <b>primary clustering</b></li>
+      <li><b>Secondary Clustering:</b> key ที่ hash ได้ตำแหน่งเดียวกันยัง probe ตามลำดับเดียวกัน (เสียเพิ่มน้อยกว่า 0.5 probe)</li>
+      <li><b>Probing Limit:</b> ถ้าตารางเต็มเกิน 50% ไม่การันตีว่าจะหาช่องว่างเจอ</li>
+    </ul>
+
+    <h3>6.1 Trace: insert 89, 18, 49, 58, 69 (M = 10)</h3>
+    <div data-ht="quad" data-size="10" data-keys="89,18,49,58,69" data-cards></div>
+
+    <h3>6.2 Theorem 5.1: การันตีของ Quadratic Probing</h3>
+    <div class="callout"><strong class="t">Theorem</strong>
+      ถ้าใช้ quadratic probing และ TableSize <i>M</i> เป็น <b>prime</b> แล้ว key ใหม่ <b>ใส่ได้เสมอ</b> ตราบที่ตารางว่างอย่างน้อยครึ่งหนึ่ง
+    </div>
+    <details><summary>พิสูจน์ (ย่อ)</summary>
+      ให้ M เป็น prime คี่ &gt; 3 · ตำแหน่ง probe แรก ⌈M/2⌉ ตัว คือ h(x) + i² mod M และ h(x) + j² mod M โดย 0 ≤ i, j ≤ ⌊M/2⌋<br>
+      สมมติว่าสองตำแหน่งซ้ำกัน ทั้งที่ i ≠ j → i² ≡ j² (mod M) → (i − j)(i + j) ≡ 0 (mod M)<br>
+      เพราะ M เป็น prime ต้องมี (i − j) ≡ 0 หรือ (i + j) ≡ 0 (mod M) อย่างใดอย่างหนึ่ง แต่
+      <ul>
+        <li>(i − j) ≡ 0 เป็นไปไม่ได้ เพราะ i ≠ j และ 0 ≤ i, j ≤ ⌊M/2⌋</li>
+        <li>(i + j) ≡ 0 เป็นไปไม่ได้ เพราะ i + j &gt; 0 และ i + j ≤ 2⌊M/2⌋ &lt; M</li>
+      </ul>
+      ดังนั้นตำแหน่งแรก ⌈M/2⌉ ตัวต่างกันหมด → ถ้าตารางว่าง≥ ครึ่งหนึ่ง ย่อมเจอช่องว่างแน่นอน ∎
+    </details>
+
+    <h3>6.3 โค้ด C++ ของ Probing Hash Table</h3>
+    <div class="code"><div class="code-head"><span>C++ · Probing HashTable: class</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename HashedObj&gt;
+class HashTable {
+public:
+    explicit HashTable( int size = 101 ) : array( nextPrime( size ) ) { makeEmpty(); }
+    bool contains( const HashedObj &amp; x ) const { return isActive( findPos( x ) ); }
+    bool insert( const HashedObj &amp; x );
+    bool remove( const HashedObj &amp; x );
+    enum EntryType { ACTIVE, EMPTY, DELETED };
+private:
+    struct HashEntry {
+        HashedObj element;
+        EntryType info;
+        HashEntry( const HashedObj &amp; e = HashedObj{ }, EntryType i = EMPTY )
+          : element{ e }, info{ i } {}
+    };
+    vector&lt;HashEntry&gt; array;
+    int currentSize;
+    bool isActive( int currentPos ) const { return array[ currentPos ].info == ACTIVE; }
+    int findPos( const HashedObj &amp; x ) const;
+    void rehash();
+};</code></pre></div>
+    <div class="code"><div class="code-head"><span>C++ · findPos และ insert (quadratic probing)</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename HashedObj&gt;
+int HashTable&lt;HashedObj&gt;::findPos( const HashedObj &amp; x ) const {
+    int offset = 1;
+    int currentPos = myhash( x );
+    while ( array[ currentPos ].info != EMPTY &amp;&amp; array[ currentPos ].element != x ) {
+        currentPos += offset;        // F(i) = F(i-1) + 2i - 1
+        offset += 2;
+        if ( currentPos &gt;= array.size() )
+            currentPos -= array.size();
+    }
+    return currentPos;
+}
+
+template &lt;typename HashedObj&gt;
+bool HashTable&lt;HashedObj&gt;::insert( const HashedObj &amp; x ) {
+    int currentPos = findPos( x );
+    if ( isActive( currentPos ) ) return false;   // Duplicate
+    array[ currentPos ].element = x;
+    array[ currentPos ].info = ACTIVE;
+    if ( ++currentSize &gt; array.size() / 2 )
+        rehash();                                 // Load factor &gt; 0.5
+    return true;
+}</code></pre></div>
+    <p>สังเกต: <code>findPos</code> หยุดเมื่อเจอ <b>ช่องว่าง</b> หรือช่องที่มี key เดียวกัน (ไม่ว่า ACTIVE หรือ DELETED) · ใช้ความสัมพันธ์ F(i) = F(i−1) + 2i − 1 เพื่อเลี่ยงการคูณ · และ <code>remove</code> แค่เปลี่ยน <code>info</code> เป็น <code>DELETED</code></p>
+
+    <!-- ===================== 7 ===================== -->
+    <h2 id="double">7. Open Addressing: Double Hashing</h2>
+    <p><b>f(i) = i · h₂(x)</b> โดย h₂(x) คือ hash function ตัวที่สองที่ใช้คำนวณ <b>step size</b> ของการ probe</p>
+    <h4>การออกแบบ h₂(x)</h4>
+    <ul>
+      <li>h₂(x) ต้อง <b>ไม่เป็น 0 เด็ดขาด</b></li>
+      <li>TableSize <i>M</i> ต้องเป็น <b>prime</b> เพื่อให้ probe ได้ครบทุกช่อง</li>
+      <li>ตัวเลือกที่นิยม: <code>h₂(x) = R − (x mod R)</code> โดย <i>R</i> เป็น prime ที่น้อยกว่า M</li>
+    </ul>
+    <p>ในทางทฤษฎี double hashing เทียบเท่า random probing แต่ในทางปฏิบัติ quadratic probing ง่ายกว่าและไม่ต้องมี hash function ตัวที่สอง</p>
+
+    <h3>7.1 Trace: insert 89, 18, 49, 58, 69 (M = 10, h₁(x) = x mod 10, h₂(x) = 7 − (x mod 7), R = 7)</h3>
+    <div data-ht="double" data-size="10" data-keys="89,18,49,58,69" data-cards></div>
+
+    <!-- ===================== 8 ===================== -->
+    <h2 id="rehash">8. Rehashing</h2>
+    <p>เมื่อ load factor สูงเกินไป ประสิทธิภาพจะตก จึงต้อง <b>rehash</b>:</p>
+    <ol>
+      <li>Trigger เมื่อ λ เกินเกณฑ์ (เช่น <b>λ &gt; 0.5</b> สำหรับ probing, <b>λ &gt; 1.0</b> สำหรับ chaining)</li>
+      <li>สร้างตารางใหม่ขนาด <b>ประมาณ 2 เท่า</b> (ต้องปัดเป็น prime ตัวถัดไป)</li>
+      <li>Scan ตารางเก่า แล้ว re-insert ทุกตัวที่ active ลงตารางใหม่ด้วย <b>hash function ใหม่</b> ตามขนาดใหม่</li>
+      <li>ใช้เวลา O(N) แต่เกิดไม่บ่อย → ต้นทุนต่อการ insert แบบ <b>amortized ยังเป็น O(1)</b></li>
+    </ol>
+
+    <h3>8.1 Trace</h3>
+    <p><b>ตั้งต้น:</b> insert 13, 15, 24, 6 ลง linear probing ขนาด 7 (h(x) = x mod 7): 13 → 6, 15 → 1, 24 → 3, 6 → ชนที่ 6 → probe (6+1) mod 7 = 0</p>
+    <div data-ht="linear" data-size="7" data-keys="13,15,24,6"></div>
+    <p><b>Insert 23:</b> h(23) = 23 mod 7 = 2 → ช่อง 2 ว่าง วางที่ 2 · ตอนนี้มี 5 ตัวใน 7 ช่อง → λ = 5/7 ≈ 71.4% &gt; 50% → <b>Rehash!</b> ขนาดใหม่ = 7 × 2 = 14 → prime ตัวถัดไปคือ <b>17</b> · hash function ใหม่ h′(x) = x mod 17</p>
+    <div data-ht="linear" data-size="7" data-keys="13,15,24,6,23"></div>
+    <p><b>Scan ตารางเก่าตามลำดับ index:</b> 6, 15, 23, 24, 13 แล้ว insert ลงตารางขนาด 17:</p>
+    <div data-ht="linear" data-size="17" data-keys="6,15,23,24,13" data-cards></div>
+    <div class="callout warn"><strong class="t">หมายเหตุ</strong>
+      ตามกฎ λ &gt; 0.5 จริงๆ ตาราง 7 ช่องที่มี 4 ตัว (λ = 4/7 ≈ 57%) ก็ควร rehash แล้ว · สไลด์ตั้งต้นแบบนี้เพื่อให้เห็นขั้นตอนชัด ถ้าอยากทำซ้ำใน Simulation ให้ปิด "auto rehash" แล้วกดปุ่ม Rehash เอง
+    </div>
+
+    <!-- ===================== 9 ===================== -->
+    <h2 id="sim">9. Simulation: ลองเล่น Hash Table</h2>
+    <p>เลือกวิธีจัดการ collision และ TableSize แล้ว <b>Insert / Search / Remove</b> เพื่อดูทีละขั้น (เล่นอัตโนมัติ หรือกดย้อน/ถัดไปเอง) · ลองใส่ 89, 18, 49, 58, 69 ใน 4 โหมดแล้วเทียบกับ trace ข้างบน · ลอง Remove แล้ว Search เพื่อดู lazy deletion · ลองเปลี่ยนเป็น TableSize ที่ไม่ใช่ prime กับ Quadratic แล้วใส่ key หลายตัวที่ชนกัน</p>
+    <div class="sim">
+      <div class="sim-controls">
+        <select id="ht-mode" aria-label="วิธีจัดการ collision">
+          <option value="chain">Separate Chaining</option>
+          <option value="linear" selected>Linear Probing</option>
+          <option value="quad">Quadratic Probing</option>
+          <option value="double">Double Hashing</option>
+        </select>
+        <select id="ht-size" aria-label="TableSize">
+          <option value="7">M = 7</option>
+          <option value="10" selected>M = 10</option>
+          <option value="11">M = 11</option>
+          <option value="13">M = 13</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="ht-auto" checked> auto rehash</label>
+      </div>
+      <div class="sim-controls">
+        <input type="number" id="ht-input" placeholder="key" aria-label="key">
+        <button id="ht-insert" class="primary" type="button">Insert</button>
+        <button id="ht-search" type="button">Search</button>
+        <button id="ht-remove" type="button">Remove</button>
+        <button id="ht-rehash" type="button">Rehash</button>
+        <span class="spacer"></span>
+        <button id="ht-random" class="ghost" type="button">สุ่ม</button>
+        <button id="ht-clear" class="ghost" type="button">ล้าง</button>
+      </div>
+      <div id="ht-msg" class="sim-msg" aria-live="polite"></div>
+      <div id="ht-stats" class="sim-stats"></div>
+      <div id="ht-view" class="ht-stage"></div>
+      <div class="sim-legend">
+        <span><i style="background:var(--cmp)"></i>กำลังตรวจ / ชน</span>
+        <span><i style="background:var(--done)"></i>วาง / พบ</span>
+        <span><i style="background:var(--hole);border-color:var(--hole-stroke)"></i>DELETED / ไม่พบ</span>
+      </div>
+      <div class="sim-nav">
+        <button id="ht-prev" type="button">◀ ย้อน</button>
+        <button id="ht-play" class="primary" type="button">▶ เล่น</button>
+        <button id="ht-next" type="button">ถัดไป ▶</button>
+        <label>ช้า <input type="range" id="ht-speed" min="300" max="1800" step="100" value="1000" style="direction:rtl;vertical-align:middle"> เร็ว</label>
+      </div>
+    </div>
+    <div class="callout"><strong class="t">กติกาของตัวจำลอง</strong>
+      Rehash เมื่อ N+DELETED &gt; M/2 (probing) หรือ N &gt; M (chaining) โดยตัวที่ DELETED จะถูกทิ้งตอน rehash · Double hashing ใช้ R = prime ที่ใหญ่ที่สุดที่น้อยกว่า M · จำกัดสูงสุด 40 ตัว
+    </div>
+
+    <!-- ===================== 10 ===================== -->
+    <h2 id="summary">10. Complexity, สรุป &amp; แบบฝึกหัด</h2>
+    <h3>Average vs Worst-Case Complexity</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Operation</th><th>Average Case</th><th>Worst Case</th></tr>
+      <tr><td>Separate Chaining — Search (สำเร็จ)</td><td>O(1 + λ/2)</td><td>O(N) <small>(ทุก key ลง list เดียว)</small></td></tr>
+      <tr><td>Separate Chaining — Search (ไม่สำเร็จ)</td><td>O(1 + λ)</td><td>O(N)</td></tr>
+      <tr><td>Separate Chaining — Insertion</td><td>O(1)</td><td>O(N)</td></tr>
+      <tr><td>Linear Probing — Search (สำเร็จ)</td><td>O(1 + 1/(1−λ))</td><td>O(N) <small>(ต้อง scan ทั้งตาราง)</small></td></tr>
+      <tr><td>Linear Probing — Search (ไม่สำเร็จ)</td><td>O(1 + 1/(1−λ)²)</td><td>O(N)</td></tr>
+      <tr><td>Quadratic Probing — Search (สำเร็จ)</td><td>O(1 + ln(1/(1−λ))/λ)</td><td>O(N)</td></tr>
+      <tr><td>Double Hashing — Search (สำเร็จ)</td><td>O(1 + ln(1/(1−λ))/λ)</td><td>O(N)</td></tr>
+    </table></div>
+    <div class="callout"><strong class="t">สรุป</strong>
+      Hashing ให้ search เฉลี่ย <b>O(1)</b> ถ้าคุม λ ให้เหมาะสม (chaining: λ ≈ 1, probing: λ ≤ 0.5) และ rehash เมื่อจำเป็น — เร็วกว่า tree สำหรับข้อมูลที่ <b>ไม่ต้องเรียงลำดับ</b>
+    </div>
+
+    <h3>เปรียบเทียบวิธีจัดการ Collision</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>วิธี</th><th>f(i)</th><th>ข้อดี</th><th>ข้อเสีย / เงื่อนไข</th></tr>
+      <tr><td>Separate Chaining</td><td>– (linked list)</td><td style="text-align:left">λ ≈ 1 ก็ใช้ได้ · ลบง่าย</td><td style="text-align:left">ใช้ pointer / หน่วยความจำเพิ่ม</td></tr>
+      <tr><td>Linear Probing</td><td>i</td><td style="text-align:left">เรียบง่าย</td><td style="text-align:left">Primary clustering · λ &lt; 0.5</td></tr>
+      <tr><td>Quadratic Probing</td><td>i²</td><td style="text-align:left">ไม่มี primary clustering</td><td style="text-align:left">Secondary clustering · M ต้อง prime และ λ ≤ 0.5</td></tr>
+      <tr><td>Double Hashing</td><td>i · h₂(x)</td><td style="text-align:left">ใกล้เคียง random probing</td><td style="text-align:left">ต้องมี h₂ (ห้ามเป็น 0) · M ต้อง prime</td></tr>
+    </table></div>
+
+    <h3>แบบฝึกหัด</h3>
+    <details><summary>1) Linear probing, M = 7, h(x) = x mod 7: insert 18, 25, 11, 4 ผลเป็นอย่างไร?</summary>
+      18 → 4 · 25 → h = 4 ชน → 5 · 11 → h = 4 ชน 4, 5 → 6 · 4 → h = 4 ชน 4, 5, 6 → วนไป 0<br>
+      ผลลัพธ์: index 0 = 4, index 4 = 18, index 5 = 25, index 6 = 11 (ช่อง 1–3 ว่าง)</details>
+    <details><summary>2) Quadratic probing, M = 11: insert 22, 33, 44 (ทั้งหมด h = 0) ลงช่องไหน?</summary>
+      22 → 0 · 33: ชนที่ 0 → (0 + 1²) = 1 ว่าง → ช่อง 1 · 44: ชน 0 → ชน 1 → (0 + 2²) = 4 → ช่อง 4</details>
+    <details><summary>3) Double hashing, M = 11, R = 7, h₂(x) = 7 − (x mod 7): insert 12 แล้ว 23</summary>
+      12 → h = 1 วางช่อง 1 · 23 → h = 1 ชน · h₂(23) = 7 − (23 mod 7) = 7 − 2 = 5 → (1 + 5) mod 11 = 6 ว่าง → วางช่อง 6</details>
+    <details><summary>4) ทำไม open addressing ถึงลบ key โดยทำให้ช่องกลับเป็น EMPTY ตรงๆ ไม่ได้?</summary>
+      ตัวอย่าง linear probing M = 10: insert 89 (ช่อง 9) แล้ว 49 (ชนที่ 9 → ช่อง 0) · ถ้าลบ 89 แล้วทำให้ช่อง 9 เป็น EMPTY จริง การ search 49 จะเริ่มที่ช่อง 9 เจอ EMPTY ก็หยุด → สรุปผิดว่า "ไม่พบ" · จึงใช้ <b>lazy deletion</b> (DELETED) ให้ probe เดินผ่านต่อได้ (ลองใน Simulation: Remove 89 แล้ว Search 49)</details>
+    <details><summary>5) Quadratic probing ต้องการให้ M เป็น prime และตารางว่างอย่างน้อยครึ่งหนึ่งเพราะอะไร?</summary>
+      Theorem 5.1: เมื่อ M เป็น prime ตำแหน่ง probe แรก ⌈M/2⌉ ตัว (h(x) + i² mod M) จะต่างกันทั้งหมด จึงการันตีว่าถ้าตารางว่าง ≥ ครึ่งหนึ่งต้องเจอช่องว่าง · ถ้า M ไม่เป็น prime หรือ λ &gt; 0.5 อาจ probe วนซ้ำช่องเดิมและใส่ไม่ได้ ทั้งที่ยังมีช่องว่าง</details>
+    <details><summary>6) คำนวณ hash ของ "cat" ด้วยวิธี Horner (×37) กับ TableSize = 101</summary>
+      hashVal: 99 → 3760 → 139236 · 139236 mod 101 = 139236 − 101 × 1378 = 139236 − 139178 = <b>58</b></details>
+
+    <div class="pager"><a href="chapter-07.html">← บทที่ 7</a><span></span></div>
+  </article>
+</div>
+
+<footer>204252 Data Structures and Analysis · Computer Science Department</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+<script src="../assets/hash.js"></script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  document.querySelectorAll('.code-head button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.closest('.code').querySelector('code').innerText;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+        b.textContent = 'คัดลอกแล้ว ✔'; setTimeout(function () { b.textContent = 'คัดลอก'; }, 1500);
+      }, function () {});
+    });
+  });
+  // เน้นหัวข้อปัจจุบันใน TOC
+  var links = [].slice.call(document.querySelectorAll('.toc a'));
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (e.isIntersecting) links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article h2[id]').forEach(function (h) { io.observe(h); });
+</script>
+</body>
+</html>
