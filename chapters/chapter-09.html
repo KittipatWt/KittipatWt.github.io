@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>บทที่ 9 Sets, Maps, Dictionaries | 204252 Final</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+<nav class="topbar">
+  <a href="../index.html">204252 Final</a><span class="sep">/</span><span class="crumb">บทที่ 9 Sets, Maps, Dictionaries</span>
+</nav>
+
+<div class="layout">
+  <aside class="toc"><ol id="toc-list">
+    <li><a href="#set">1. Set ADT</a></li>
+    <li><a href="#setops">2. Set Operations</a></li>
+    <li><a href="#map">3. Map ADT</a></li>
+    <li><a href="#dict">4. Dictionary ADT</a></li>
+    <li><a href="#list">5. Dictionary แบบ List</a></li>
+    <li><a href="#tree">6. Dictionary แบบ Tree</a></li>
+    <li><a href="#hash">7. Dictionary แบบ Hash</a></li>
+    <li><a href="#sim">8. Simulation</a></li>
+    <li><a href="#summary">9. สรุป &amp; แบบฝึกหัด</a></li>
+  </ol></aside>
+
+  <article>
+    <h1>บทที่ 9: Sets, Maps, and Dictionaries</h1>
+    <p class="subtitle">204252 Data Structures and Analysis · อ้างอิงสไลด์ Part 1–2 ของ Thapanapong Rukkanchanunt และ Jakarin Chawachat</p>
+
+    <!-- ===================== 1 ===================== -->
+    <h2 id="set">1. Set ADT</h2>
+    <p><b>Set</b> คือกลุ่มของ object ที่ <b>ไม่ซ้ำกัน</b> และไม่มีแนวคิดเรื่อง key หรือ order ที่ชัดเจน</p>
+    <h3>1.1 คุณสมบัติของ <code>std::set</code></h3>
+    <ul>
+      <li><b>Uniqueness:</b> ทุก element ไม่ซ้ำ — การ insert ซ้ำจะถูกเพิกเฉย</li>
+      <li><b>Sorted:</b> เก็บเรียงลำดับ (น้อย→มาก เป็นค่าเริ่มต้น)</li>
+      <li><b>Immutable:</b> แก้ค่า element ตรงๆ ไม่ได้ ต้อง erase แล้ว insert ใหม่</li>
+      <li><b>Under the hood:</b> มักสร้างจาก balanced binary search tree (Red-Black Tree)</li>
+    </ul>
+    <p><b>ตัวอย่างการใช้:</b> เซตของ record ในฐานข้อมูล (intersection สำหรับ query แบบ AND), เซตของ URL ที่ตรงกับ keyword ใน search engine, อีเมล, เพื่อนใน Facebook, รายการสินค้าในคลัง</p>
+
+    <h3>1.2 ฟังก์ชันพื้นฐาน</h3>
+    <div class="grid2">
+      <div class="step"><h4>Core ADT</h4>
+        <p><code>insert(e)</code> — เพิ่ม e คืน iterator (ไม่สำเร็จถ้าซ้ำ)<br>
+        <code>find(e)</code> — คืน iterator ของ e หรือ <code>end()</code> ถ้าไม่พบ<br>
+        <code>erase(e)</code> — ลบ e<br>
+        <code>begin()</code> / <code>end()</code> — iterator สำหรับไล่ element</p></div>
+      <div class="step"><h4>STL Extensions</h4>
+        <p><code>lower_bound(e)</code> — iterator ตัวแรกที่ <b>≥ e</b><br>
+        <code>upper_bound(e)</code> — iterator ตัวแรกที่ <b>&gt; e</b><br>
+        <code>equal_range(e)</code> — คู่ iterator ของช่วง element ที่เท่ากับ e</p></div>
+    </div>
+
+    <h3>1.3 รายละเอียด <code>insert</code>, <code>erase</code>, <code>find</code></h3>
+    <h4>insert มี 2 แบบ</h4>
+    <ol>
+      <li><code>pair&lt;iterator, bool&gt; insert(const Object &amp; x);</code> — คืน pair: iterator ชี้ element (ที่ใส่ใหม่หรือที่มีอยู่แล้ว) และ <code>bool</code> บอกว่า insert สำเร็จไหม</li>
+      <li><code>iterator insert(iterator hint, const Object &amp; x);</code> — ระบุ <b>hint</b> ว่า x ควรอยู่ตรงไหน ถ้า hint ถูกต้อง insert ใช้ <b>O(1)</b> ถ้าไม่ถูกจะถอยกลับไปเป็น O(log N)</li>
+    </ol>
+    <div class="code"><div class="code-head"><span>C++ · Hint insertion</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">set&lt;int&gt; s;
+for (int i = 0; i &lt; 100000; ++i) {
+    s.insert(s.end(), i);   // O(1) เพราะ s.end() คือตำแหน่งที่ถูกต้องเสมอ
+}</code></pre></div>
+    <h4>erase มี 3 แบบ</h4>
+    <ol>
+      <li><b>By value:</b> <code>int erase(const Object &amp; x)</code> — ลบ x ถ้ามี คืนจำนวนที่ลบ (0 หรือ 1)</li>
+      <li><b>By iterator:</b> <code>iterator erase(iterator itr)</code> — ลบตัวที่ itr ชี้ คืน iterator ของตัวถัดไป · <b>itr เดิมใช้ไม่ได้แล้ว (stale)!</b></li>
+      <li><b>Range:</b> <code>iterator erase(iterator start, iterator end)</code> — ลบทุกตัวในช่วง <code>[start, end)</code></li>
+    </ol>
+    <h4>find</h4>
+    <p><code>iterator find(const Object &amp; x) const;</code> คืน iterator ถ้าเจอ หรือ <code>end()</code> ถ้าไม่เจอ — ให้ข้อมูลมากกว่า <code>bool</code> เพราะเข้าถึงตัวที่เจอได้ทันทีโดยไม่ต้องค้นซ้ำ</p>
+
+    <h3>1.4 Custom Ordering</h3>
+    <p>ค่าเริ่มต้นใช้ <code>std::less&lt;Object&gt;</code> (เรียกตัวดำเนินการ <code>&lt;</code>) เปลี่ยนได้โดยส่ง function object เข้าไป:</p>
+    <div class="code"><div class="code-head"><span>C++ · Case-insensitive set</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">struct CaseInsensitiveCompare {
+    bool operator()(const string&amp; lhs, const string&amp; rhs) const {
+        return strcasecmp(lhs.c_str(), rhs.c_str()) &lt; 0;
+    }
+};
+
+int main() {
+    set&lt;string, CaseInsensitiveCompare&gt; s;
+    s.insert("Hello");
+    s.insert("HeLLo");   // ซ้ำแบบไม่สนตัวพิมพ์ → ถูกเพิกเฉย
+    cout &lt;&lt; "Size: " &lt;&lt; s.size() &lt;&lt; endl;   // พิมพ์ 1
+}</code></pre></div>
+
+    <h3>1.5 การสร้างและไล่ดู Set</h3>
+    <div class="code"><div class="code-head"><span>C++ · Initializing and Traversing</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;set&gt;
+using namespace std;
+
+int main() {
+    set&lt;int&gt; s1;                              // Default: Ascending Order
+    set&lt;int, greater&lt;int&gt;&gt; s2;                // Descending Order
+    set&lt;int, greater&lt;int&gt;&gt; s3 = {6, 10, 5, 1};   // s3 = {10, 6, 5, 1}
+    set&lt;int, greater&lt;int&gt;&gt; s4(s3);            // Copy constructor
+
+    int arr[] = {10, 4, 5, 61};
+    set&lt;int&gt; s5(arr, arr + 4);                // s5 = {4, 5, 10, 61}
+
+    // Traversal using iterators
+    for (set&lt;int&gt;::iterator it = s5.begin(); it != s5.end(); ++it) {
+        cout &lt;&lt; *it &lt;&lt; " ";
+    }
+    cout &lt;&lt; endl;
+}</code></pre></div>
+
+    <!-- ===================== 2 ===================== -->
+    <h2 id="setops">2. Set Operations</h2>
+    <h3>2.1 นิยามทางคณิตศาสตร์</h3>
+    <ul>
+      <li><b>Union (A ∪ B):</b> ทุก element จากทั้งสองเซต</li>
+      <li><b>Intersection (A ∩ B):</b> element ที่อยู่ในทั้ง A และ B</li>
+      <li><b>Difference (A \ B):</b> element ใน A ที่ <b>ไม่อยู่</b> ใน B</li>
+    </ul>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Set A</th><th>Set B</th><th>Union</th><th>Intersection</th><th>Difference (A \ B)</th></tr>
+      <tr><td>{32, 20, 12, 6}</td><td>{42, 12, 6}</td><td>{32, 20, 12, 6, 42}</td><td>{12, 6}</td><td>{32, 20}</td></tr>
+      <tr><td>{21, 1, 70, 9}</td><td>{ }</td><td>{21, 1, 70, 9}</td><td>{ }</td><td>{21, 1, 70, 9}</td></tr>
+      <tr><td>{5, 27, 18}</td><td>{27}</td><td>{5, 27, 18}</td><td>{27}</td><td>{5, 18}</td></tr>
+      <tr><td>{27}</td><td>{5, 27, 18}</td><td>{5, 27, 18}</td><td>{27}</td><td>{ }</td></tr>
+    </table></div>
+
+    <h3>2.2 โค้ด Union, Intersection, Difference</h3>
+    <div class="code"><div class="code-head"><span>C++ · getUnion / getIntersection / getDifference</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename T&gt;
+set&lt;T&gt; getUnion(set&lt;T&gt; a, set&lt;T&gt; b) {
+    set&lt;T&gt; result = a;
+    for (typename set&lt;T&gt;::iterator it = b.begin(); it != b.end(); ++it) {
+        result.insert(*it);          // ตัวซ้ำถูกเพิกเฉยเอง
+    }
+    return result;
+}
+
+template &lt;typename T&gt;
+set&lt;T&gt; getIntersection(set&lt;T&gt; a, set&lt;T&gt; b) {
+    set&lt;T&gt; result;
+    for (typename set&lt;T&gt;::iterator it = a.begin(); it != a.end(); ++it) {
+        if (b.find(*it) != b.end()) {
+            result.insert(*it);
+        }
+    }
+    return result;
+}
+
+template &lt;typename T&gt;
+set&lt;T&gt; getDifference(set&lt;T&gt; a, set&lt;T&gt; b) {
+    set&lt;T&gt; result = a;
+    for (typename set&lt;T&gt;::iterator it = b.begin(); it != b.end(); ++it) {
+        result.erase(*it);
+    }
+    return result;
+}</code></pre></div>
+    <p>ดู trace ทีละขั้นของ A = {6, 12, 20, 32}, B = {6, 12, 42} ได้ใน <a href="#sim">Simulation</a> (Set Operations)</p>
+    <div class="grid2">
+      <div class="step"><h4>Union ของตัวอย่างนี้</h4>
+        <p>result = {6, 12, 20, 32} → b = 6, 12 อยู่แล้ว (ข้าม) → b = 42 ไม่อยู่ → insert → <b>{6, 12, 20, 32, 42}</b></p></div>
+      <div class="step"><h4>Intersection ของตัวอย่างนี้</h4>
+        <p>result = { } → a = 6 ∈ B ✔ → 12 ∈ B ✔ → 20 ∉ B → 32 ∉ B → <b>{6, 12}</b></p></div>
+    </div>
+
+    <h3>2.3 High-Level Collection Operations (สไตล์ Java)</h3>
+    <p>แทนที่จะวน loop เอง สร้าง primitive ระดับสูงก่อน แล้วประกอบเป็น union / intersection ได้กระชับ:</p>
+    <div class="code"><div class="code-head"><span>C++ · addAll / containAll / removeAll / retainAll</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">template &lt;typename T&gt;
+void addAll(set&lt;T&gt; b, set&lt;T&gt;&amp; a) {
+    a.insert(b.begin(), b.end());
+}
+
+template &lt;typename T&gt;
+bool containAll(set&lt;T&gt; b, set&lt;T&gt; a) {
+    for (auto it = b.begin(); it != b.end(); ++it)
+        if (a.find(*it) == a.end()) return false;
+    return true;
+}
+
+template &lt;typename T&gt;
+void removeAll(set&lt;T&gt; b, set&lt;T&gt;&amp; a) {
+    for (auto it = b.begin(); it != b.end(); ++it) a.erase(*it);
+}
+
+template &lt;typename T&gt;
+void retainAll(set&lt;T&gt; b, set&lt;T&gt;&amp; a) {
+    for (typename set&lt;T&gt;::iterator it = a.begin(); it != a.end(); ) {
+        if (b.find(*it) == b.end()) {
+            it = a.erase(it);        // erase คืน iterator ของตัวถัดไป
+        } else {
+            ++it;
+        }
+    }
+}
+
+template &lt;typename T&gt;
+set&lt;T&gt; getUnionUsingHelpers(set&lt;T&gt; setA, set&lt;T&gt; setB) {
+    set&lt;T&gt; result;
+    addAll(setA, result);
+    addAll(setB, result);
+    return result;
+}
+
+template &lt;typename T&gt;
+set&lt;T&gt; getIntersectionUsingHelpers(set&lt;T&gt; setA, set&lt;T&gt; setB) {
+    set&lt;T&gt; result;
+    addAll(setA, result);
+    retainAll(setB, result);
+    return result;
+}</code></pre></div>
+    <div class="callout warn"><strong class="t">ข้อควรระวังใน retainAll</strong>
+      หลัง <code>a.erase(it)</code> iterator เดิมใช้ไม่ได้ ต้องใช้ค่าที่ <code>erase</code> คืนมา และไม่ ++it ซ้ำในกรณีที่ erase
+    </div>
+
+    <h3>2.4 Implementation ใต้ Set</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>ชนิด</th><th>Search / Insert</th><th>ลำดับที่พิมพ์</th></tr>
+      <tr><td>Tree-based <code>std::set</code></td><td>O(log N)</td><td>เรียงเสมอ</td></tr>
+      <tr><td>Hash-based <code>std::unordered_set</code></td><td>O(1) เฉลี่ย</td><td>ลำดับไม่แน่นอน</td></tr>
+    </table></div>
+
+    <!-- ===================== 3 ===================== -->
+    <h2 id="map">3. Map ADT</h2>
+    <p><b>Map</b> คือ collection ของ <b>key-element item</b> (คู่ key-value) ที่ค้นหาได้</p>
+    <ul>
+      <li>แต่ละ item เป็นคู่ <code>(k, v)</code></li>
+      <li><b>key ต้องไม่ซ้ำ</b> — ห้ามมีหลาย item ที่ key เดียวกัน</li>
+      <li>ใช้สำหรับ association, lookup, search</li>
+    </ul>
+    <p><b>ตัวอย่าง:</b> สมุดที่อยู่ (ชื่อ → ที่อยู่/อีเมล), DNS Resolver (โดเมน → IP เช่น cs16.net → 128.148.34.101), ทะเบียนนักศึกษา (รหัส → record)</p>
+
+    <h3>3.1 ฟังก์ชันพื้นฐาน (สำหรับ map <i>M</i>)</h3>
+    <ul>
+      <li><code>put(k, v)</code> — ถ้าไม่มี key k ให้ insert (k, v) · ถ้ามีแล้ว <b>เขียนทับ</b> value ด้วย v · คืน iterator</li>
+      <li><code>erase(k)</code> — ลบ entry ที่ key k (ถ้าไม่พบจะ throw error)</li>
+      <li><code>erase(p)</code> — ลบ entry ที่ iterator <i>p</i> ชี้</li>
+      <li><code>find(k)</code> — คืน iterator ของ key k หรือ <code>end()</code> ถ้าไม่พบ</li>
+      <li><code>size()</code> / <code>empty()</code> — จำนวน entry / ตรวจว่าว่างไหม</li>
+      <li><code>begin()</code> / <code>end()</code> — iterator สำหรับไล่ดู</li>
+    </ul>
+
+    <h3>3.2 ตัวอย่าง Trace</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Operation</th><th>Output</th><th>Map State</th></tr>
+      <tr><td><code>empty()</code></td><td>true</td><td>∅</td></tr>
+      <tr><td><code>put(5, A)</code></td><td>iterator to (5, A)</td><td>{(5, A)}</td></tr>
+      <tr><td><code>put(7, B)</code></td><td>iterator to (7, B)</td><td>{(5, A), (7, B)}</td></tr>
+      <tr><td><code>put(2, C)</code></td><td>iterator to (2, C)</td><td>{(5, A), (7, B), (2, C)}</td></tr>
+      <tr><td><code>put(2, E)</code></td><td>iterator to (2, E)</td><td>{(5, A), (7, B), (2, E)} <small>(value ถูกเขียนทับ)</small></td></tr>
+      <tr><td><code>find(7)</code></td><td>iterator to (7, B)</td><td>{(5, A), (7, B), (2, E)}</td></tr>
+      <tr><td><code>find(4)</code></td><td>end() ("null")</td><td>{(5, A), (7, B), (2, E)}</td></tr>
+      <tr><td><code>erase(5)</code></td><td>–</td><td>{(7, B), (2, E)}</td></tr>
+    </table></div>
+
+    <h3>3.3 <code>operator[]</code> vs <code>find</code></h3>
+    <p><code>std::map</code> overload ตัวดำเนินการ index: <code>ValueType &amp; operator[] (const KeyType &amp; key);</code></p>
+    <ul>
+      <li><b>key มีอยู่:</b> คืน reference ของ value ที่ตรงกัน</li>
+      <li><b>key ไม่มี:</b> <b>insert key นั้นด้วย default value</b> (เช่น 0.0 หรือ object ที่ default-construct) แล้วคืน reference ของ value ใหม่</li>
+    </ul>
+    <div class="callout warn"><strong class="t">"Accidental Insertion" side effect</strong>
+      แค่ "อ่าน" ด้วย <code>[]</code> ก็ทำให้ map เปลี่ยนถาวรได้
+    </div>
+    <div class="code"><div class="code-head"><span>C++ · operator[]</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">map&lt;string, double&gt; salaries;
+salaries["Pat"] = 75000.00;       // insert "Pat" ด้วย 0.0 แล้ว assign เป็น 75000.00
+cout &lt;&lt; salaries["Jan"] &lt;&lt; endl;  // พิมพ์ 0.0 แต่ "Jan" ถูก insert ถาวรด้วย!</code></pre></div>
+    <p>เพราะ <code>operator[]</code> อาจแก้ map ได้ จึง <b>เรียกกับ const map ไม่ได้</b> (เช่นในฟังก์ชันที่รับ <code>const map&lt;K,V&gt;&amp;</code>) · ถ้าต้องการแค่ตรวจ/อ่านโดยไม่แก้ map ให้ใช้ <code>find()</code>:</p>
+    <div class="code"><div class="code-head"><span>C++ · Safe lookup</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">map&lt;string, double&gt;::const_iterator itr = salaries.find("Chris");
+if (itr == salaries.end()) {
+    cout &lt;&lt; "Not found!" &lt;&lt; endl;       // ไม่ได้ insert "Chris"
+} else {
+    cout &lt;&lt; "Salary: " &lt;&lt; itr-&gt;second &lt;&lt; endl;
+}</code></pre></div>
+    <div class="grid2">
+      <div class="step"><h4><code>salaries["Pat"] = 75000.0;</code></h4><p>หา "Pat" → ไม่พบ → insert ("Pat", 0.0) → assign เป็น 75000.0<br>map: {"Pat" → 75000.0}</p></div>
+      <div class="step"><h4><code>cout &lt;&lt; salaries["Jan"];</code></h4><p>หา "Jan" → ไม่พบ → insert ("Jan", 0.0) ถาวร → คืน reference 0.0<br>map: {"Pat" → 75000.0, "Jan" → 0.0}</p></div>
+      <div class="step"><h4><code>salaries.find("Chris");</code></h4><p>หา "Chris" → ไม่พบ → คืน <code>end()</code> · <b>ไม่มี side-effect</b><br>map ยังเป็น {"Pat", "Jan"} เหมือนเดิม</p></div>
+    </div>
+
+    <h3>3.4 Map แบบ Direct Address Table</h3>
+    <p>Map ที่สร้างด้วย array ดิบ <code>T[0..N−1]</code>: key ต้องเป็นจำนวนเต็มในช่วง <code>[0, N−1]</code> และ item ที่ key k เก็บที่ <code>T[k]</code> ตรงๆ</p>
+    <ul>
+      <li><code>insert</code>, <code>find</code>, <code>erase</code>: <b>O(1)</b> · Space: <b>O(N)</b> (ขนาดช่วง key)</li>
+      <li><b>เปลืองที่:</b> ถ้าจำนวน item <i>n</i> ≪ N ช่องส่วนใหญ่ถูกทิ้งว่าง เหมาะเมื่อ key หนาแน่น (n ใกล้ N)</li>
+    </ul>
+
+    <h3>3.5 STL Map: Insert และ Erase</h3>
+    <div class="code"><div class="code-head"><span>C++ · Insertion / Deletion modes</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;map&gt;
+using namespace std;
+
+int main() {
+    map&lt;char, int&gt; marks;
+    // Insertion modes
+    marks.insert(pair&lt;char, int&gt;('b', 30));            // 1. By std::pair
+    marks.insert(map&lt;char, int&gt;::value_type('d', 50)); // 2. By value_type
+    marks['e'] = 31;                                   // 3. By bracket operator
+
+    // Deletion modes
+    auto it = marks.find('b');
+    if (it != marks.end()) {
+        marks.erase(it);                               // 1. Erase by iterator
+    }
+    marks.erase('e');                                  // 2. Erase by key
+    auto range_it = marks.find('d');
+    if (range_it != marks.end()) {
+        marks.erase(range_it, marks.end());            // 3. Erase range [iterator, end)
+    }
+}</code></pre></div>
+    <h4>ไล่ดูและลบจนหมด</h4>
+    <div class="code"><div class="code-head"><span>C++ · Traversal &amp; emptying loop</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">map&lt;char, int&gt; marks = {{'a', 10}, {'b', 20}, {'c', 30}};
+cout &lt;&lt; "Initial Size: " &lt;&lt; marks.size() &lt;&lt; "\n";
+while (!marks.empty()) {
+    // first = key, second = value ของตัวแรก
+    cout &lt;&lt; marks.begin()-&gt;first &lt;&lt; " =&gt; " &lt;&lt; marks.begin()-&gt;second &lt;&lt; "\n";
+    marks.erase(marks.begin());          // ลบตัวแรก
+}
+cout &lt;&lt; "Final Size: " &lt;&lt; marks.size() &lt;&lt; "\n";</code></pre></div>
+
+    <!-- ===================== 4 ===================== -->
+    <h2 id="dict">4. Dictionary ADT</h2>
+    <p><b>Dictionary</b> ก็คือ collection ของ key-element item ที่ค้นหาได้ เหมือน Map แต่</p>
+    <div class="callout"><strong class="t">ต่างจาก Map ที่จุดเดียว</strong>
+      Dictionary <b>อนุญาตให้มี key ซ้ำ</b> — หลาย item มี key เดียวกันได้
+    </div>
+    <ul>
+      <li><code>find(k)</code> — คืน iterator ของ item หนึ่งตัวที่มี key k</li>
+      <li><code>findAll(k)</code> — คืนช่วง iterator ของ <b>ทุก</b> item ที่มี key k</li>
+      <li><code>insert(k, v)</code> — ใส่คู่ (k, v)</li>
+      <li><code>erase(k)</code> — ลบ item <b>หนึ่งตัว</b> ที่มี key k</li>
+    </ul>
+    <p><b>ตัวอย่าง:</b> พจนานุกรมที่คำหนึ่งมีได้หลายความหมาย, log file ที่จัดกลุ่มตาม timestamp หรือ IP (ใน C++ คือ <code>std::multimap</code>)</p>
+
+    <h3>ตัวอย่าง Trace</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Operation</th><th>Output</th><th>Dictionary State</th></tr>
+      <tr><td><code>empty()</code></td><td>true</td><td>∅</td></tr>
+      <tr><td><code>insert(5, A)</code></td><td>iterator to (5, A)</td><td>{(5, A)}</td></tr>
+      <tr><td><code>insert(7, B)</code></td><td>iterator to (7, B)</td><td>{(5, A), (7, B)}</td></tr>
+      <tr><td><code>insert(2, C)</code></td><td>iterator to (2, C)</td><td>{(5, A), (7, B), (2, C)}</td></tr>
+      <tr><td><code>insert(8, D)</code></td><td>iterator to (8, D)</td><td>{(5, A), (7, B), (2, C), (8, D)}</td></tr>
+      <tr><td><code>insert(2, E)</code></td><td>iterator to (2, E)</td><td>{(5, A), (7, B), (2, C), (8, D), (2, E)} <small>(ไม่เขียนทับ!)</small></td></tr>
+      <tr><td><code>find(2)</code></td><td>iterator to (2, C)</td><td>เหมือนเดิม</td></tr>
+      <tr><td><code>findAll(2)</code></td><td>range of (2, C) และ (2, E)</td><td>เหมือนเดิม</td></tr>
+      <tr><td><code>erase(5)</code></td><td>–</td><td>{(7, B), (2, C), (8, D), (2, E)}</td></tr>
+    </table></div>
+
+    <!-- ===================== 5 ===================== -->
+    <h2 id="list">5. Dictionary แบบ List</h2>
+    <h3>5.1 Unordered List (Log File)</h3>
+    <p>แบบง่ายที่สุด: เก็บ element ต่อท้ายใน doubly-linked list หรือ circular array โดยไม่เรียงลำดับ</p>
+    <ul>
+      <li><code>insert(k, v)</code>: <b>O(1)</b> (ต่อหัว/ท้าย)</li>
+      <li><code>find(k)</code> / <code>erase(k)</code>: <b>O(N)</b> (ต้องสแกนทั้งลำดับ)</li>
+      <li>Space: O(N)</li>
+      <li><b>เหมาะกับ:</b> บันทึกประวัติที่เขียนถี่มากแต่ค้น/ลบน้อย เช่นประวัติการ login ของระบบ</li>
+    </ul>
+    <p><b>Trace erase(2)</b> บน log file { (5,A), (7,B), (2,C), (2,E) }: เทียบ key 5 → ไม่ตรง · เทียบ 7 → ไม่ตรง · เทียบ 2 → ตรง ลบ (2, C) · (ในสไลด์สแกนต่อ เจอ (2, E) ลบด้วย → ลบทุกตัวที่ key 2 เหลือ {(5,A), (7,B)}) · ลองได้ใน <a href="#sim">Simulation</a></p>
+    <div class="callout warn"><strong class="t">หมายเหตุ</strong>
+      นิยาม ADT ของสไลด์บอกว่า <code>erase(k)</code> ลบ <b>หนึ่งตัว</b> แต่ trace ของ log file ลบ <b>ทุกตัว</b> ที่ key ตรงกัน · ใน Simulation ผมทำตามนิยาม ADT (ลบตัวแรกที่เจอ) ถ้าต้องการลบทุกตัวให้กด erase ซ้ำ
+    </div>
+
+    <h3>5.2 Ordered Array / Sequence</h3>
+    <p>เก็บใน array ที่เรียงตาม key:</p>
+    <ul>
+      <li><code>find(k)</code>: <b>O(log N)</b> ด้วย <b>Binary Search</b></li>
+      <li><code>insert(k, v)</code>: <b>O(N)</b> (ต้องเลื่อน element เพื่อแทรกให้เรียง)</li>
+      <li><code>erase(k)</code>: <b>O(N)</b> (ต้องเลื่อน element ปิดช่องว่าง)</li>
+    </ul>
+    <div class="scroll-x"><table class="arr">
+      <tr><th>idx</th><th>0</th><th>1</th><th>2</th><th>3</th></tr>
+      <tr><th>(k, v)</th><td>2, C</td><td>2, E</td><td>5, A</td><td>7, B</td></tr>
+    </table></div>
+    <p><b>find(5):</b> ตรงกลาง (idx 1) คือ key 2 &lt; 5 → ค้นฝั่งขวา → เจอ key 5 ที่ idx 2 ใน O(log N)</p>
+    <div class="callout warn"><strong class="t">ถ้าใช้ sorted linked list ล่ะ?</strong>
+      Binary search เป็น O(log N) บน linked list ไม่ได้ เพราะเข้าถึงแบบ sequential (ต้องใช้ O(N) เพื่อไปถึงตรงกลาง) → find ถดถอยเป็น <b>O(N)</b>
+    </div>
+
+    <!-- ===================== 6 ===================== -->
+    <h2 id="tree">6. Dictionary แบบ Tree</h2>
+    <ul>
+      <li><b>Binary Search Tree (BST):</b> เฉลี่ย O(log N) ทั้ง find, insert, delete แต่แย่สุด <b>O(N)</b> ถ้า insert key ตามลำดับที่เรียงแล้ว (ต้นไม้เบี้ยวเป็นเส้นตรง เช่น 2 → 5 → 7)</li>
+      <li><b>Balanced Trees (AVL, Red-Black):</b> การันตี worst-case <b>O(log N)</b> โดยใช้ rotation รักษาความสูง · ใช้ใน <code>std::multimap</code></li>
+    </ul>
+
+    <h3>6.1 จัดการ Duplicate ใน Tree อย่างไร?</h3>
+    <div class="grid2">
+      <div class="step"><h4>Approach A: เก็บ list ของ value ใน node</h4>
+        <p>แต่ละ node เก็บ key ที่ไม่ซ้ำ + list ของ value (เช่น <code>std::vector&lt;Value&gt;</code>)<br>ต้นไม้เล็กกว่า และ rotation เหมือน map ทั่วไป<br>ตัวอย่าง: key=5 → {A} · key=2 → {C, E} · key=7 → {B}</p></div>
+      <div class="step"><h4>Approach B: หลาย node ที่ key เดียวกัน</h4>
+        <p>กำหนดกฎ BST ว่า <b>left child ≤ parent</b> · key ซ้ำถูก insert เป็น node แยกต่างหาก<br>ต้นไม้สูงขึ้น และเวลา traverse ต้องสแกน subtree ต่อ</p></div>
+    </div>
+
+    <h3>6.2 Trace: insert 5, 2, 7, 2 (ซ้ำ) ด้วยกฎ left ≤ parent</h3>
+    <div class="grid2">
+      <div class="step"><h4>Step 1: Insert 5</h4>
+        <p>ต้นไม้ว่าง → 5 เป็น root</p>
+        <div class="tree" data-heap="5" data-done="1"></div></div>
+      <div class="step"><h4>Step 2: Insert 2</h4>
+        <p>เทียบ 5: 2 ≤ 5 → ไปซ้าย · ซ้ายว่าง → ใส่ 2</p>
+        <div class="tree" data-heap="5,2" data-done="2"></div></div>
+      <div class="step"><h4>Step 3: Insert 7</h4>
+        <p>เทียบ 5: 7 &gt; 5 → ไปขวา · ขวาว่าง → ใส่ 7</p>
+        <div class="tree" data-heap="5,2,7" data-done="3"></div></div>
+      <div class="step"><h4>Step 4: Insert 2 (ซ้ำ)</h4>
+        <p>เทียบ root 5: 2 ≤ 5 → ซ้าย · เทียบ node 2: 2 ≤ 2 → ซ้ายอีก! · ลูกซ้ายของ 2 ว่าง → ใส่ 2 ตัวซ้ำที่นี่</p>
+        <div class="tree" data-heap="5,2,7,2" data-done="4"></div></div>
+    </div>
+
+    <!-- ===================== 7 ===================== -->
+    <h2 id="hash">7. Dictionary แบบ Hash</h2>
+    <p>Hash Table ใช้ hash function <i>h(K)</i> แมป key ไปยัง slot (bucket) · เฉลี่ย <b>O(1)</b> ทั้ง insert, lookup, deletion · แย่สุด <b>O(N)</b> ถ้าทุกตัวลง bucket เดียว · เพราะ key space ใหญ่กว่า M มาก จึงต้องมี collision resolution (ดู <a href="chapter-08.html">บทที่ 8</a>)</p>
+
+    <h3>7.1 Separate Chaining</h3>
+    <p>แต่ละ bucket ชี้ไป linked list ของ entry ที่ hash มาที่ slot นั้น</p>
+    <ul>
+      <li><b>Duplicates:</b> จัดการง่าย — ต่อคู่ key-value ที่ซ้ำเข้าไปใน chain เดียวกัน</li>
+      <li><b>Load factor λ = N/M:</b> เกิน 1 ได้ · เวลา search เฉลี่ย O(1 + λ)</li>
+    </ul>
+    <p><b>Trace:</b> insert (12, C), (7, B), (12, E) ลงตาราง M = 5 ด้วย h(K) = K mod 5</p>
+    <div class="grid2">
+      <div class="step"><h4>Step 1: Insert (12, C)</h4><p>h(12) = 12 mod 5 = 2 → ต่อ chain ช่อง 2</p>
+        <div class="ht-chain"><div class="ht-row"><span class="ht-i">2</span><span class="ht-head"></span><span class="ht-arrow">→</span><span class="ht-node done">12, C</span></div></div></div>
+      <div class="step"><h4>Step 2: Insert (7, B)</h4><p>h(7) = 7 mod 5 = 2 → ต่อ chain ช่อง 2 → (12, C) → (7, B)</p>
+        <div class="ht-chain"><div class="ht-row"><span class="ht-i">2</span><span class="ht-head"></span><span class="ht-arrow">→</span><span class="ht-node">12, C</span><span class="ht-arrow">→</span><span class="ht-node done">7, B</span></div></div></div>
+      <div class="step"><h4>Step 3: Insert (12, E) ซ้ำ key!</h4><p>h(12) = 2 → ต่อท้าย chain: (12, C) → (7, B) → (12, E)</p>
+        <div class="ht-chain"><div class="ht-row"><span class="ht-i">2</span><span class="ht-head"></span><span class="ht-arrow">→</span><span class="ht-node">12, C</span><span class="ht-arrow">→</span><span class="ht-node">7, B</span><span class="ht-arrow">→</span><span class="ht-node done">12, E</span></div></div></div>
+    </div>
+
+    <h3>7.2 Open Addressing</h3>
+    <p>ทุก item เก็บในตัว array · ถ้า h(K) เต็มจะ probe:</p>
+    <ul>
+      <li><b>Linear Probing:</b> <i>i = (h(K) + j) mod M</i> — ปัญหา <b>Primary Clustering</b> (ช่องที่เต็มติดกันรวมเป็นก้อนยาว)</li>
+      <li><b>Quadratic Probing:</b> <i>i = (h(K) + j²) mod M</i> — ขจัด primary clustering แต่มี <b>Secondary Clustering</b> (key ที่ hash ได้ index เดียวกัน probe ตามลำดับเดียวกัน)</li>
+      <li><b>Double Hashing:</b> <i>i = (h₁(K) + j · h₂(K)) mod M</i> — ขจัดได้ทั้ง primary และ secondary clustering เพราะ step size ขึ้นกับ key · h₂(K) ต้อง <b>ไม่เป็น 0</b> · สูตรที่นิยม <i>h₂(K) = R − (K mod R)</i> โดย R เป็น prime ที่ &lt; M</li>
+    </ul>
+    <p><b>ตัวอย่าง:</b> M = 11, h₁(K) = K mod 11, h₂(K) = 7 − (K mod 7), insert K = 14: h₁(14) = 3 (ช่อง 3 เต็ม) → h₂(14) = 7 − 0 = 7 → probe 1: (3 + 7) mod 11 = 10</p>
+
+    <h3>7.3 Duplicate ใน Open Addressing</h3>
+    <ol>
+      <li><b>Insertion:</b> key ซ้ำถูกวางในช่องว่างถัดไปใน probe sequence</li>
+      <li><b>Search (<code>findAll(k)</code>):</b> หยุดตอนเจอตัวแรกไม่ได้! ต้อง probe ต่อไปจนเจอช่อง <b>empty (ไม่เคยถูกใช้)</b> · ช่องที่เป็น tombstone (DELETED) ไม่ทำให้หยุด</li>
+      <li><b>Erase:</b> ต้องค้นตลอดสายเพื่อลบ value ที่ต้องการ</li>
+    </ol>
+    <div class="callout warn"><strong class="t">Performance Degradation</strong>
+      เพราะ duplicate บังคับให้ search สแกน probe path ไปจนสุดทาง เมื่อมี key ซ้ำมาก open addressing จะช้าลงมาก → ควรใช้ <b>Separate Chaining</b> หรือ node ที่เก็บ list ของ value แทน
+    </div>
+
+    <h3>7.4 Trace: Double Hashing กับ key ซ้ำ</h3>
+    <p>M = 7, h₁(K) = K mod 7, h₂(K) = 5 − (K mod 5) · insert (12, A), (5, B), (12, C)</p>
+    <div class="grid2">
+      <div class="step"><h4>Step 1: Insert (12, A)</h4>
+        <p>h₁(12) = 12 mod 7 = 5 (ว่าง) → วางช่อง 5</p>
+        <div class="scroll-x"><table class="arr"><tr><th>i</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+        <tr><th>(k,v)</th><td class="empty">–</td><td class="empty">–</td><td class="empty">–</td><td class="empty">–</td><td class="empty">–</td><td class="done">12,A</td><td class="empty">–</td></tr></table></div></div>
+      <div class="step"><h4>Step 2: Insert (5, B)</h4>
+        <p>h₁(5) = 5 ชนกับ 12 · h₂(5) = 5 − (5 mod 5) = 5 · probe 1: (5 + 5) mod 7 = 3 (ว่าง) → วางช่อง 3</p>
+        <div class="scroll-x"><table class="arr"><tr><th>i</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+        <tr><th>(k,v)</th><td class="empty">–</td><td class="empty">–</td><td class="empty">–</td><td class="done">5,B</td><td class="empty">–</td><td>12,A</td><td class="empty">–</td></tr></table></div></div>
+      <div class="step"><h4>Step 3: Insert (12, C) ซ้ำ key!</h4>
+        <p>h₁(12) = 5 ชน · h₂(12) = 5 − (12 mod 5) = 3 · probe 1: (5 + 3) mod 7 = 1 (ว่าง) → วางช่อง 1</p>
+        <div class="scroll-x"><table class="arr"><tr><th>i</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+        <tr><th>(k,v)</th><td class="empty">–</td><td class="done">12,C</td><td class="empty">–</td><td>5,B</td><td class="empty">–</td><td>12,A</td><td class="empty">–</td></tr></table></div></div>
+      <div class="step"><h4>findAll(12)</h4>
+        <p>step size h₂(12) = 3 · ช่อง 5 = (12, A) ✔ yield A · probe 1: (5 + 3) mod 7 = 1 = (12, C) ✔ yield C · probe 2: (5 + 2·3) mod 7 = 4 → <b>Empty → หยุด</b> (ไม่มี duplicate เพิ่มแล้ว)</p>
+        <div class="scroll-x"><table class="arr"><tr><th>i</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+        <tr><th>(k,v)</th><td class="empty">–</td><td class="done">12,C</td><td class="empty">–</td><td>5,B</td><td class="hole">stop</td><td class="done">12,A</td><td class="empty">–</td></tr></table></div></div>
+    </div>
+
+    <!-- ===================== 8 ===================== -->
+    <h2 id="sim">8. Simulation</h2>
+
+    <h3>8.1 Set Operations: Union / Intersection / Difference</h3>
+    <p>ใส่เซต A และ B (คั่นด้วย comma) เลือกการดำเนินการ แล้วดูโค้ดทำงานทีละขั้นตามที่เขียนไว้ในหัวข้อ 2.2 · ค่าเริ่มต้นคือตัวอย่างจากสไลด์ (A = {6, 12, 20, 32}, B = {6, 12, 42}) · ตัวเลขที่ซ้ำจะถูกตัดออกให้ (เพราะเป็น set) และเรียงจากน้อยไปมาก</p>
+    <div class="sim">
+      <div class="sim-controls">
+        <label class="chk">A <input type="text" id="ss-a" value="6, 12, 20, 32" style="width:150px"></label>
+        <label class="chk">B <input type="text" id="ss-b" value="6, 12, 42" style="width:150px"></label>
+        <select id="ss-op" aria-label="การดำเนินการ">
+          <option value="union">Union (A ∪ B)</option>
+          <option value="inter">Intersection (A ∩ B)</option>
+          <option value="diff">Difference (A \ B)</option>
+        </select>
+        <button id="ss-run" class="primary" type="button">เริ่ม</button>
+      </div>
+      <div id="ss-msg" class="sim-msg" aria-live="polite"></div>
+      <div id="ss-view" class="ht-stage"></div>
+      <div class="sim-legend">
+        <span><i style="background:var(--cmp)"></i>กำลังพิจารณา</span>
+        <span><i style="background:var(--done)"></i>insert ลง result</span>
+      </div>
+      <div class="sim-nav">
+        <button id="ss-prev" type="button">◀ ย้อน</button>
+        <button id="ss-play" class="primary" type="button">▶ เล่น</button>
+        <button id="ss-next" type="button">ถัดไป ▶</button>
+        <label>ช้า <input type="range" id="ss-speed" min="300" max="1800" step="100" value="1000" style="direction:rtl;vertical-align:middle"> เร็ว</label>
+      </div>
+    </div>
+
+    <h3>8.2 Map vs Dictionary</h3>
+    <p>เลือก <b>Map</b> (key ห้ามซ้ำ, <code>put</code> เขียนทับ, มี <code>operator[]</code>) หรือ <b>Dictionary</b> (key ซ้ำได้, <code>insert</code> ไม่เขียนทับ, มี <code>findAll</code>) แล้วลองใส่/ค้น/ลบ · ตัวจำลองเก็บเป็น list ตามลำดับที่ใส่ (แบบ log file) เพื่อให้เห็นการสแกนทีละตัว · ใน Map ลอง <code>m[k]</code> โดยเว้น value ว่างกับ key ที่ไม่มี เพื่อดู <b>accidental insertion</b></p>
+    <div class="sim">
+      <div class="sim-controls">
+        <select id="kv-mode" aria-label="ชนิด ADT">
+          <option value="map" selected>Map</option>
+          <option value="dict">Dictionary</option>
+        </select>
+        <input type="number" id="kv-key" placeholder="key" aria-label="key" style="width:84px">
+        <input type="text" id="kv-val" placeholder="value" aria-label="value" maxlength="4" style="width:84px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit">
+      </div>
+      <div class="sim-controls">
+        <button id="kv-put" class="primary" type="button">put</button>
+        <button id="kv-find" type="button">find</button>
+        <button id="kv-findall" type="button" disabled>findAll</button>
+        <button id="kv-erase" type="button">erase</button>
+        <button id="kv-index" type="button">m[k]</button>
+        <span class="spacer"></span>
+        <button id="kv-example" class="ghost" type="button">โหลดตัวอย่าง</button>
+        <button id="kv-clear" class="ghost" type="button">ล้าง</button>
+      </div>
+      <div id="kv-msg" class="sim-msg" aria-live="polite"></div>
+      <div class="sim-stats" id="kv-state"></div>
+      <div id="kv-view" class="ht-stage"></div>
+      <div class="sim-legend">
+        <span><i style="background:var(--cmp)"></i>กำลังเทียบ</span>
+        <span><i style="background:var(--done)"></i>พบ / ใส่ / แก้</span>
+        <span><i style="background:var(--hole);border-color:var(--hole-stroke)"></i>ถูกลบ</span>
+      </div>
+      <div class="sim-nav">
+        <button id="kv-prev" type="button">◀ ย้อน</button>
+        <button id="kv-play" class="primary" type="button">▶ เล่น</button>
+        <button id="kv-next" type="button">ถัดไป ▶</button>
+        <label>ช้า <input type="range" id="kv-speed" min="300" max="1800" step="100" value="1000" style="direction:rtl;vertical-align:middle"> เร็ว</label>
+      </div>
+    </div>
+    <div class="callout"><strong class="t">ลองเทียบ</strong>
+      กด "โหลดตัวอย่าง" ใน Map แล้ว <code>put(2, E)</code> → value ของ key 2 ถูกเขียนทับ · เปลี่ยนเป็น Dictionary โหลดตัวอย่างแล้ว <code>insert(2, E)</code> → มี key 2 สองตัว ลอง <code>findAll(2)</code> (ลำดับตรงกับ trace 3.2 และ 4)
+    </div>
+
+    <!-- ===================== 9 ===================== -->
+    <h2 id="summary">9. สรุป &amp; แบบฝึกหัด</h2>
+    <h3>เปรียบเทียบ Set / Map / Dictionary</h3>
+    <div class="scroll-x"><table class="data">
+      <tr><th>ADT</th><th>เก็บอะไร</th><th>key ซ้ำ</th><th>ใน C++</th></tr>
+      <tr><td>Set</td><td style="text-align:left">element เดี่ยวๆ (ไม่มี key/value แยก)</td><td>ไม่ได้</td><td><code>std::set</code>, <code>std::unordered_set</code></td></tr>
+      <tr><td>Map</td><td style="text-align:left">คู่ (key, value)</td><td>ไม่ได้ (put เขียนทับ)</td><td><code>std::map</code>, <code>std::unordered_map</code></td></tr>
+      <tr><td>Dictionary</td><td style="text-align:left">คู่ (key, value)</td><td>ได้ (มี findAll)</td><td><code>std::multimap</code></td></tr>
+    </table></div>
+
+    <h3>ตารางเปรียบเทียบ Implementation</h3>
+    <p>N = จำนวน item · M = ความจุของตาราง · <i>count</i> = จำนวน item ที่ key ตรงกัน</p>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Implementation</th><th>Find (1 ตัว)</th><th>Find All (k)</th><th>Insert</th><th>Delete</th></tr>
+      <tr><td>Log File</td><td>O(N)</td><td>O(N)</td><td>O(1)</td><td>O(N)</td></tr>
+      <tr><td>Ordered Array</td><td>O(log N)</td><td>O(log N + count)</td><td>O(N)</td><td>O(N)</td></tr>
+      <tr><td>Binary Search Tree</td><td>O(N) worst</td><td>O(N) worst</td><td>O(N) worst</td><td>O(N) worst</td></tr>
+      <tr><td>Balanced Tree (RBT)</td><td>O(log N)</td><td>O(log N + count)</td><td>O(log N)</td><td>O(log N)</td></tr>
+      <tr><td>Hash: Chaining</td><td>O(1 + λ) avg</td><td>O(1 + λ + count) avg</td><td>O(1)</td><td>O(1 + λ) avg</td></tr>
+      <tr><td>Hash: Open Addressing</td><td>O(1/(1−λ)) avg</td><td>O(full probe chain)</td><td>O(1/(1−λ))</td><td>O(1/(1−λ))</td></tr>
+    </table></div>
+    <p>สำหรับ Map (ไม่มี duplicate) เพิ่ม <b>Direct Address Table</b>: insert / find / erase O(1) แต่ space O(ขนาดช่วง key) เปลืองถ้า key กระจัดกระจาย</p>
+    <div class="callout"><strong class="t">เลือกใช้อันไหน?</strong>
+      <ul style="margin:6px 0 0">
+        <li><b>Log File</b> — เขียนถี่ ค้นน้อย</li>
+        <li><b>Direct Address Table</b> — key เป็นจำนวนเต็มช่วงเล็กๆ</li>
+        <li><b>Tree Map</b> — ต้องการ range query หรือผลลัพธ์เรียงลำดับ · tree การันตี bound แบบ sub-linear คงที่ และเก็บ duplicate ไว้ติดกัน</li>
+        <li><b>Hash Map</b> — lookup เร็วทั่วไป · chaining รับมือ duplicate ได้ดี · <b>เลี่ยง open addressing</b> เมื่อมี key ซ้ำหรือการลบบ่อย</li>
+      </ul>
+    </div>
+
+    <h3>แบบฝึกหัด</h3>
+    <details><summary>1) <code>set&lt;int&gt; s;</code> แล้ว insert 5, 3, 5, 8 ตามลำดับ · <code>s.size()</code> เป็นเท่าไร และ insert ตัวที่สองของ 5 คืนอะไร?</summary>
+      size = <b>3</b> ({3, 5, 8} เรียงจากน้อยไปมาก) · การ insert 5 ครั้งที่สองคืน <code>pair&lt;iterator, bool&gt;</code> ที่ iterator ชี้ 5 ที่มีอยู่แล้ว และ <code>bool = false</code></details>
+    <details><summary>2) A = {5, 27, 18}, B = {27, 40} จงหา A ∪ B, A ∩ B, A \ B และ B \ A</summary>
+      A ∪ B = {5, 18, 27, 40} · A ∩ B = {27} · A \ B = {5, 18} · B \ A = {40}</details>
+    <details><summary>3) ทำไมเรียก <code>operator[]</code> กับ <code>const map&lt;K,V&gt;&amp;</code> ไม่ได้ และควรใช้อะไรแทน?</summary>
+      เพราะ <code>operator[]</code> อาจ insert key ใหม่ (เปลี่ยน map) ซึ่งขัดกับ const · ใช้ <code>find()</code> ที่คืน <code>const_iterator</code> แล้วเช็กกับ <code>end()</code> ก่อนอ่าน <code>itr-&gt;second</code></details>
+    <details><summary>4) <code>map&lt;string,int&gt; m; cout &lt;&lt; m["x"]; cout &lt;&lt; m.size();</code> พิมพ์อะไร?</summary>
+      พิมพ์ <b>0</b> (default value ของ int) แล้วพิมพ์ <b>1</b> เพราะ <code>m["x"]</code> insert ("x", 0) ไว้ถาวร (accidental insertion) · ถ้าใช้ <code>m.find("x")</code> แทน size จะยังเป็น 0</details>
+    <details><summary>5) Dictionary ว่างเริ่มต้น: insert(5,A), insert(7,B), insert(2,C), insert(2,E), erase(2) ผลเป็นอย่างไร?</summary>
+      ก่อน erase: {(5,A), (7,B), (2,C), (2,E)} · <code>erase(k)</code> ลบ <b>หนึ่งตัว</b> ตามนิยาม ADT — ใน log file ที่สแกนจากหัวจะเจอ (2,C) ก่อน → เหลือ {(5,A), (7,B), (2,E)} (ตัวไหนถูกลบขึ้นกับ implementation) · ส่วนใน Map ทำ put(2,E) ครั้งที่สองจะเขียนทับ ไม่มี key 2 สองตัวตั้งแต่ต้น</details>
+    <details><summary>6) ข้อมูลมี key ซ้ำเยอะและมีการลบบ่อย ควรเลือก implementation ไหน เพราะอะไร?</summary>
+      <b>Separate Chaining</b> (หรือ balanced tree ที่ node เก็บ list ของ value) · chaining แค่ต่อ duplicate เข้า chain และลบ node ได้ตรงๆ · open addressing ต้องสแกน probe path จนสุดทางเพื่อ findAll/erase และการลบต้องใช้ tombstone ทำให้ช้าลงมาก</details>
+    <details><summary>7) Double hashing M = 7, h₁(K) = K mod 7, h₂(K) = 5 − (K mod 5): insert key 12 สองตัวที่ตารางมี (12, A) ที่ช่อง 5 อยู่แล้ว ตัวที่สองลงช่องไหน?</summary>
+      h₁(12) = 5 ชน · h₂(12) = 5 − (12 mod 5) = 3 · (5 + 3) mod 7 = <b>1</b> (ว่าง) → วางที่ช่อง 1</details>
+
+    <div class="pager"><a href="chapter-08.html">← บทที่ 8</a><span></span></div>
+  </article>
+</div>
+
+<footer>204252 Data Structures and Analysis · Computer Science Department</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+<script src="../assets/heap.js"></script>
+<script src="../assets/kv.js"></script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  document.querySelectorAll('.code-head button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.closest('.code').querySelector('code').innerText;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+        b.textContent = 'คัดลอกแล้ว ✔'; setTimeout(function () { b.textContent = 'คัดลอก'; }, 1500);
+      }, function () {});
+    });
+  });
+  // เน้นหัวข้อปัจจุบันใน TOC
+  var links = [].slice.call(document.querySelectorAll('.toc a'));
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (e.isIntersecting) links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article h2[id]').forEach(function (h) { io.observe(h); });
+</script>
+</body>
+</html>

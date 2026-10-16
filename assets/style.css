@@ -180,10 +180,20 @@ div[data-ht] .ht-log { text-align: left; }
 #hs-input { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; width: 180px; }
 #hs-size { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; width: 90px; }
 
+/* set / map views */
+.set-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; font-family: var(--font-code); }
+.set-lbl { width: 56px; text-align: right; color: var(--muted); font-size: .85rem; }
+.kv-list { display: inline-flex; flex-direction: column; gap: 4px; align-items: center; font-family: var(--font-code); font-size: .9rem; }
+.kv { min-width: 130px; padding: 3px 14px; text-align: center; border: 1.5px solid var(--node-stroke); border-radius: 4px; background: var(--node); }
+.kv.cmp { background: var(--cmp); }
+.kv.done { background: var(--done); }
+.kv.del { background: var(--hole); border-color: var(--hole-stroke); }
+.set-row .ht-node.del { background: var(--hole); }
+
 /* simulator */
 .sim { background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; padding: 16px; margin: 20px 0; }
 .sim-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-.sim input[type=number] { width: 84px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+.sim input[type=number], .sim input[type=text] { width: 84px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
 .sim button, .btn { background: var(--navy); color: #fff; border: 0; border-radius: 8px; padding: 7px 14px; cursor: pointer; font: inherit; font-size: .92rem; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sim button { background: #2e4a4d; } }
 .sim button.primary { background: var(--accent); color: #1b1b1b; font-weight: 600; }
