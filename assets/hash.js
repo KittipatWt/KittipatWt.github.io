@@ -188,7 +188,7 @@
     const st = create(mode, M);
     const steps = keys.map((k) => { const F = []; run(st, 'insert', k, F); return { k, F }; });
     if ('cards' in el.dataset) {
-      el.classList.add('grid2');
+      el.classList.add('grid2', 'stack');
       el.innerHTML = steps.map((s, i) => `<div class="step"><h4>Step ${i + 1}: Insert ${s.k}</h4><p>${s.F.map((f) => f.msg).join('<br>')}</p>${render(s.F[s.F.length - 1])}</div>`).join('');
       return;
     }

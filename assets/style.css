@@ -216,3 +216,9 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 24
 /* headings */
 h1, h2, h3, h4, h5, h6, .card .num, .btn-go { font-family: var(--font-head); }
 pre, pre code, kbd, samp, .code-head, .hljs { font-family: var(--font-code); }
+
+/* กัน grid ขยายตามเนื้อหากว้าง (ตาราง / code) จนหน้าล้นจอ */
+.layout > article, .grid2 > * { min-width: 0; }
+.step .scroll-x, .sim .scroll-x, .sim .ht-stage { max-width: 100%; }
+article { overflow-wrap: break-word; }
+.grid2.stack { grid-template-columns: 1fr; }
