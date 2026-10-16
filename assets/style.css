@@ -1,4 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Google+Sans+Code:wght@400;500;700&family=Prompt:wght@400;500;600;700&display=swap");
+
 :root {
+  --font-head: "Prompt", "Noto Sans Thai", sans-serif;
+  --font-body: "Google Sans", "Noto Sans Thai", "Sarabun", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: "Google Sans Code", ui-monospace, Menlo, Consolas, monospace;
   --bg: #fafafa;
   --surface: #ffffff;
   --text: #1f2d30;
@@ -45,7 +50,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: "Noto Sans Thai", "Sarabun", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-body);
   line-height: 1.8;
   font-size: 17px;
 }
@@ -99,7 +104,7 @@ article h1 { font-size: 2.1rem; margin: 0 0 4px; color: var(--navy); }
 article .subtitle { color: var(--muted); margin: 0 0 24px; }
 article h2 { font-size: 1.55rem; margin: 48px 0 12px; padding-bottom: 6px; color: var(--navy); border-bottom: 2px solid var(--accent); }
 article h3 { font-size: 1.2rem; margin: 28px 0 8px; }
-code { font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; font-size: .88em; background: var(--code-bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; }
+code { font-family: var(--font-code); font-size: .88em; background: var(--code-bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 5px; }
 
 .callout { background: var(--info-bg); border-left: 4px solid var(--accent); border-radius: 6px; padding: 12px 16px; margin: 16px 0; }
 .callout strong.t { color: var(--accent); display: block; }
@@ -126,14 +131,14 @@ table.data tr.best td { background: var(--done); }
 .tree svg { width: 100%; height: auto; max-width: 560px; }
 .tree svg .edge { stroke: var(--node-stroke); stroke-width: 1.4; opacity: .6; }
 .tree svg .node circle { fill: var(--node); stroke: var(--node-stroke); stroke-width: 1.6; }
-.tree svg .node text { fill: var(--text); font-size: 15px; font-family: ui-monospace, Menlo, Consolas, monospace; text-anchor: middle; dominant-baseline: central; }
+.tree svg .node text { fill: var(--text); font-size: 15px; font-family: var(--font-code); text-anchor: middle; dominant-baseline: central; }
 .tree svg .node.hole circle { fill: var(--hole); stroke: var(--hole-stroke); }
 .tree svg .node.cmp circle { fill: var(--cmp); }
 .tree svg .node.done circle { fill: var(--done); }
 .tree svg .node.bad circle { stroke: var(--hole-stroke); stroke-width: 3; }
 .tree svg .idx { fill: var(--muted); font-size: 11px; text-anchor: middle; }
 .tree svg .held-box { fill: var(--cmp); stroke: var(--accent); }
-.tree svg .held-t { fill: var(--text); font-size: 14px; text-anchor: middle; dominant-baseline: central; font-family: ui-monospace, monospace; }
+.tree svg .held-t { fill: var(--text); font-size: 14px; text-anchor: middle; dominant-baseline: central; font-family: var(--font-code); }
 .tree figcaption { color: var(--muted); font-size: .9rem; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
@@ -142,7 +147,7 @@ table.data tr.best td { background: var(--done); }
 .step p { margin: 0 0 6px; font-size: .95rem; line-height: 1.6; }
 
 /* array table */
-.arr { border-collapse: collapse; margin: 10px auto; font-family: ui-monospace, Menlo, monospace; font-size: .9rem; }
+.arr { border-collapse: collapse; margin: 10px auto; font-family: var(--font-code); font-size: .9rem; }
 .arr th, .arr td { border: 1px solid var(--border); min-width: 38px; padding: 3px 6px; text-align: center; }
 .arr th { background: var(--info-bg); color: var(--muted); font-weight: 600; }
 .arr td.hole { background: var(--hole); }
@@ -171,3 +176,7 @@ details { background: var(--surface); border: 1px solid var(--border); border-ra
 details summary { cursor: pointer; font-weight: 600; }
 .pager { display: flex; justify-content: space-between; margin-top: 48px; }
 footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 24px; }
+
+/* headings */
+h1, h2, h3, h4, h5, h6, .card .num, .btn-go { font-family: var(--font-head); }
+pre, pre code, kbd, samp, .code-head, .hljs { font-family: var(--font-code); }
