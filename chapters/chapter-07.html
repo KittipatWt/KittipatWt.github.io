@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>บทที่ 7 Priority Queues | 204252 Final</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+<nav class="topbar">
+  <a href="../index.html">204252 Final</a><span class="sep">/</span><span class="crumb">บทที่ 7 Priority Queues</span>
+</nav>
+
+<div class="layout">
+  <aside class="toc"><ol id="toc-list">
+    <li><a href="#adt">1. Priority Queue ADT</a></li>
+    <li><a href="#cost">2. ทำไมต้อง Heap?</a></li>
+    <li><a href="#props">3. คุณสมบัติของ Binary Heap</a></li>
+    <li><a href="#insert">4. Insert: Percolate Up</a></li>
+    <li><a href="#delete">5. deleteMin: Percolate Down</a></li>
+    <li><a href="#sim">6. Simulation</a></li>
+    <li><a href="#apps">7. การประยุกต์ใช้</a></li>
+    <li><a href="#summary">8. สรุป & แบบฝึกหัด</a></li>
+  </ol></aside>
+
+  <article>
+    <h1>บทที่ 7: Priority Queues (Binary Heaps)</h1>
+    <p class="subtitle">204252 Data Structures and Analysis · อ้างอิงสไลด์ของ Thapanapong Rukkanchanunt และ Jakarin Chawachat</p>
+
+    <!-- ===================== 1 ===================== -->
+    <h2 id="adt">1. Priority Queue ADT</h2>
+    <p><b>Priority Queue</b> เป็น Abstract Data Type (ADT) ที่เก็บกลุ่มของข้อมูล โดยแต่ละตัวมี <b>priority (key)</b> และรองรับ 2 การทำงานหลัก:</p>
+    <ul>
+      <li><code>insert(x)</code> — ใส่ข้อมูล <i>x</i> เข้าไปในคิว</li>
+      <li><code>deleteMin()</code> — ลบและคืนค่าตัวที่มี key <b>น้อยที่สุด</b> (priority สูงสุดใน Min-Priority Queue)</li>
+    </ul>
+    <div class="tree" style="max-width:640px;margin:auto">
+      <svg viewBox="0 0 640 90" role="img" aria-label="priority queue model" style="max-width:640px">
+        <defs><marker id="ar" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8z" fill="currentColor"/></marker></defs>
+        <g style="color:var(--text)" stroke="currentColor" stroke-width="1.6" fill="none">
+          <line x1="110" y1="45" x2="225" y2="45" marker-end="url(#ar)"/>
+          <rect x="230" y="22" width="180" height="46" rx="4" style="fill:var(--surface)"/>
+          <line x1="415" y1="45" x2="530" y2="45" marker-end="url(#ar)"/>
+        </g>
+        <g fill="currentColor" style="color:var(--text)" font-size="16" text-anchor="middle" font-family="ui-monospace,monospace">
+          <text x="60" y="50">insert(x)</text><text x="320" y="50">Priority Queue</text><text x="590" y="50">deleteMin()</text>
+        </g>
+      </svg>
+    </div>
+
+    <h3>เปรียบเทียบกับ Container อื่น</h3>
+    <ul>
+      <li><b>Stack</b>: เข้าหลัง ออกก่อน (LIFO) → เข้าถึงตัวที่ <i>ใหม่</i> ที่สุด</li>
+      <li><b>Queue</b>: เข้าก่อน ออกก่อน (FIFO) → เข้าถึงตัวที่ <i>เก่า</i> ที่สุด</li>
+      <li><b>Priority Queue</b>: ตัวที่ priority สูงสุดออกก่อน → เข้าถึงตัวที่ <i>น้อยที่สุด/มากที่สุด</i></li>
+    </ul>
+
+    <h3>ตัวอย่างการใช้งานจริง</h3>
+    <ul>
+      <li><b>OS Scheduler</b> — เลือก process ที่ priority สูงสุด / เหลือเวลาทำงานสั้นที่สุด</li>
+      <li><b>Network Router</b> — ส่งแพ็กเก็ตเสียง/วิดีโอก่อนทราฟฟิกทั่วไป</li>
+      <li><b>Graph Algorithms</b> — Prim's MST, Dijkstra's Shortest Path, Huffman Coding</li>
+    </ul>
+
+    <!-- ===================== 2 ===================== -->
+    <h2 id="cost">2. ทำไมต้อง Heap? วิเคราะห์ต้นทุนของวิธีง่ายๆ</h2>
+    <p>ถ้าสร้าง Priority Queue จาก list ธรรมดา จะได้ความเร็วดังนี้ (N = จำนวนข้อมูล):</p>
+    <div class="scroll-x"><table class="data">
+      <tr><th>โครงสร้างข้อมูล</th><th><code>insert(x)</code></th><th><code>deleteMin()</code></th></tr>
+      <tr><td>Unsorted Array / List</td><td>O(1)</td><td>O(N) <small>(สแกนหาค่าน้อยสุด)</small></td></tr>
+      <tr><td>Sorted Array / List</td><td>O(N) <small>(ต้องเลื่อนข้อมูล)</small></td><td>O(1) <small>(เอาตัวแรก)</small></td></tr>
+      <tr><td>Binary Search Tree</td><td>O(log N)</td><td>O(log N)</td></tr>
+      <tr class="best"><td>Binary Heap</td><td>O(log N) <small>(worst)</small></td><td>O(log N)</td></tr>
+    </table></div>
+    <div class="callout"><strong class="t">สรุป</strong>
+      BST ทำเกินความจำเป็น เพราะเรียงข้อมูลทั้งหมดและต้องใช้ pointer ที่แพง ส่วน <b>Binary Heap</b> เป็น complete binary tree แบบพิเศษที่ <i>ไม่ใช้ pointer</i> (เก็บใน array) และทำทั้งสองการทำงานได้ใน <b>O(log N)</b> กรณีเลวร้ายที่สุด
+    </div>
+
+    <!-- ===================== 3 ===================== -->
+    <h2 id="props">3. คุณสมบัติของ Binary Heap</h2>
+    <h3>3.1 Structure Property: Complete Binary Tree</h3>
+    <p>Heap คือ <b>Complete Binary Tree</b> — ทุก level เต็มหมด ยกเว้น level ล่างสุดที่อาจไม่เต็ม แต่ต้องเติมจาก <b>ซ้ายไปขวา</b> ไม่มีช่องว่างคั่น จึงเก็บใน array ที่เริ่มต้นที่ <b>index 1</b> ได้ตรงๆ:</p>
+    <div class="grid2">
+      <div>
+        <div class="tree" data-heap="13,21,16,24,31,19,68" data-idx></div>
+        <table class="arr"><tr><th>i</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr>
+        <tr><th>val</th><td>–</td><td>13</td><td>21</td><td>16</td><td>24</td><td>31</td><td>19</td><td>68</td></tr></table>
+      </div>
+      <div class="callout"><strong class="t">สูตรสำคัญ (ท่องไว้สอบ!)</strong>
+        <ul style="margin:6px 0 0">
+          <li>Left child ของ <i>i</i> = <code>2i</code></li>
+          <li>Right child ของ <i>i</i> = <code>2i + 1</code></li>
+          <li>Parent ของ <i>i</i> = <code>⌊i / 2⌋</code></li>
+          <li>Index <code>0</code> = sentinel / dummy (ไม่เก็บข้อมูลจริง)</li>
+        </ul>
+        <p style="margin:8px 0 0">ตัวอย่าง: node ที่ index 5 (ค่า 31) → parent = ⌊5/2⌋ = 2 (ค่า 21), left child = 10, right child = 11</p>
+      </div>
+    </div>
+
+    <h3>3.2 Heap-Order Property</h3>
+    <p><b>กฎของ Min-Heap:</b> สำหรับทุก node <i>X</i> ที่ไม่ใช่ root ค่า key ของ parent ต้อง <b>น้อยกว่าหรือเท่ากับ (≤)</b> key ของ <i>X</i> ผลคือ <b>ค่าต่ำสุดอยู่ที่ root เสมอ</b> → <code>findMin()</code> เป็น O(1)</p>
+    <div class="grid2">
+      <figure style="margin:0"><div class="tree" data-heap="13,21,16,24,31"></div><figcaption>✔ Valid Min-Heap</figcaption></figure>
+      <figure style="margin:0"><div class="tree" data-heap="13,16,21,6,31" data-bad="4"></div><figcaption>✘ Invalid: 6 เป็นลูกของ 16 แต่ 16 &gt; 6 ผิดกฎ heap-order</figcaption></figure>
+    </div>
+    <div class="callout warn"><strong class="t">ข้อควรระวัง</strong>
+      Heap ไม่ได้เรียงข้อมูลทั้งหมด! ลูกซ้ายกับลูกขวา <i>ไม่จำเป็น</i> ต้องเรียงกัน (เช่น 21 กับ 16 ด้านบน) รู้แค่ parent ≤ child เท่านั้น
+    </div>
+
+    <!-- ===================== 4 ===================== -->
+    <h2 id="insert">4. Insert: Percolate Up</h2>
+    <p>แนวคิดคือ "ถือ hole ไว้แล้วดันขึ้นข้างบน":</p>
+    <ol>
+      <li>สร้าง <b>hole</b> ที่ตำแหน่งว่างถัดไปของ complete tree (index <code>size+1</code>)</li>
+      <li>ถ้า <i>x</i> ใส่ใน hole ได้โดยไม่ผิดกฎ heap-order → วางลงไปเลย</li>
+      <li>ไม่เช่นนั้น เลื่อน <b>parent ลงมา</b> ใน hole (hole เลื่อนขึ้น) แล้วทำซ้ำ</li>
+    </ol>
+
+    <h3>ตัวอย่าง: insert 14</h3>
+    <div class="grid2">
+      <div class="step"><h4>Step 1: สร้าง hole</h4>
+        <p>สร้าง hole ที่ index 11 · เทียบ 14 กับ parent <b>31</b> (index 5): 14 &lt; 31 → ต้อง bubble up</p>
+        <div class="tree" data-heap="13,21,16,24,31,19,68,65,26,32,_" data-cmp="5"></div></div>
+      <div class="step"><h4>Step 2: Percolate Up</h4>
+        <p>เลื่อน <b>31</b> ลงใน hole · hole ย้ายไป index 5 · เทียบ 14 กับ parent <b>21</b> (index 2): 14 &lt; 21 → bubble up อีก</p>
+        <div class="tree" data-heap="13,21,16,24,_,19,68,65,26,32,31" data-cmp="2"></div></div>
+      <div class="step"><h4>Step 3: Percolate Up</h4>
+        <p>เลื่อน <b>21</b> ลง · hole ย้ายไป index 2 · เทียบ 14 กับ parent <b>13</b> (index 1): 14 &gt; 13 → hole หยุดที่นี่</p>
+        <div class="tree" data-heap="13,_,16,24,21,19,68,65,26,32,31" data-cmp="1"></div></div>
+      <div class="step"><h4>Step 4: วางค่า</h4>
+        <p>วาง <b>14</b> ลงใน hole ที่ index 2 · heap-order ถูกต้องครบ ✔</p>
+        <div class="tree" data-heap="13,14,16,24,21,19,68,65,26,32,31" data-done="2"></div></div>
+    </div>
+
+    <h3>โค้ด C++ (ตาม Weiss)</h3>
+    <p>โค้ดนี้คัดลอกค่าที่จะ insert ไปไว้ที่ <code>array[0]</code> เพื่อใช้เป็น <b>sentinel</b> ทำให้ลูปหยุดเองที่ root โดยไม่ต้องเช็ก <code>hole &gt; 1</code> (เพราะ <code>x &lt; array[0]</code> เป็นเท็จเสมอ)</p>
+    <div class="code"><div class="code-head"><span>C++ · BinaryHeap::insert</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">// Insert item x, allowing duplicates.
+void insert( const Comparable &amp; x )
+{
+    if( currentSize == array.size( ) - 1 )   // array เต็ม → ขยายเป็น 2 เท่า
+        array.resize( array.size( ) * 2 );
+
+    // Percolate up
+    int hole = ++currentSize;                // 1) สร้าง hole ที่ตำแหน่งว่างถัดไป
+    Comparable copy = x;
+    array[ 0 ] = std::move( copy );          // sentinel: ตัวหยุดลูปที่ root
+
+    for( ; x &lt; array[ hole / 2 ]; hole /= 2 )
+        array[ hole ] = std::move( array[ hole / 2 ] );  // 3) เลื่อน parent ลง
+    array[ hole ] = std::move( array[ 0 ] ); // 2) วางค่าลงใน hole
+}</code></pre></div>
+    <div class="callout"><strong class="t">Complexity</strong>
+      <b>O(log N)</b> ในกรณีเลวร้ายที่สุด (ไต่ขึ้นสุด root = ความสูงของต้นไม้) แต่โดยเฉลี่ยใช้เพียงประมาณ <b>2.6 comparisons</b> ดังนั้น insert โดยเฉลี่ยคือ <b>O(1)</b>
+    </div>
+
+    <!-- ===================== 5 ===================== -->
+    <h2 id="delete">5. deleteMin: Percolate Down</h2>
+    <p>ค่าต่ำสุดอยู่ที่ root อยู่แล้ว ปัญหาคือหลังลบจะเกิด hole ที่ root ต้องซ่อมให้ heap ยังเป็น complete tree:</p>
+    <ol>
+      <li>ลบ root (ค่าต่ำสุด) → เกิด hole ที่ index 1</li>
+      <li>หยิบ <b>ตัวสุดท้าย</b> ของ heap มาเก็บไว้ที่ <code>tmp</code> (size ลดลง 1)</li>
+      <li>เลื่อน <b>child ที่เล็กกว่า</b> ของ hole ขึ้นมา (hole ลงไปข้างล่าง)</li>
+      <li>ทำซ้ำจนกว่า <code>tmp</code> วางใน hole ได้โดยไม่ผิดกฎ heap-order</li>
+    </ol>
+    <div class="callout warn"><strong class="t">Edge Case: Single Child</strong>
+      ถ้า heap มีจำนวนตัวเป็น <b>เลขคู่</b> จะมี node หนึ่งที่มีลูกซ้ายตัวเดียว (ไม่มีลูกขวา) ต้องเช็กก่อนเทียบ <code>array[child + 1]</code> ไม่เช่นนั้นจะอ่านเกินขอบเขตของ heap
+    </div>
+
+    <h3>ตัวอย่าง: deleteMin (ต่อจาก heap หลัง insert 14)</h3>
+    <div class="grid2">
+      <div class="step"><h4>Step 1: ลบ root &amp; ถือ 31</h4>
+        <p>ลบ root <b>13</b> → hole ที่ index 1 · หยิบตัวสุดท้าย <b>31</b> (index 11) มาถือไว้ · size เหลือ 10</p>
+        <div class="tree" data-heap="_,14,16,24,21,19,68,65,26,32"></div></div>
+      <div class="step"><h4>Step 2: Percolate Down</h4>
+        <p>เทียบ children <b>14</b> กับ <b>16</b> → ตัวเล็กคือ 14 · 31 &gt; 14 → เลื่อน 14 ขึ้น · hole ลงไป index 2</p>
+        <div class="tree" data-heap="14,_,16,24,21,19,68,65,26,32" data-cmp="2,3"></div></div>
+      <div class="step"><h4>Step 3: Percolate Down</h4>
+        <p>เทียบ children <b>24</b> กับ <b>21</b> → ตัวเล็กคือ 21 · 31 &gt; 21 → เลื่อน 21 ขึ้น · hole ลงไป index 5</p>
+        <div class="tree" data-heap="14,21,16,24,_,19,68,65,26,32" data-cmp="4,5"></div></div>
+      <div class="step"><h4>Step 4: วางค่า</h4>
+        <p>เทียบ child <b>32</b> (index 10, มีตัวเดียว) · 31 &lt; 32 → หยุด · วาง <b>31</b> ที่ index 5 ✔</p>
+        <div class="tree" data-heap="14,21,16,24,31,19,68,65,26,32" data-done="5"></div></div>
+    </div>
+
+    <h3>โค้ด C++</h3>
+    <div class="code"><div class="code-head"><span>C++ · BinaryHeap::deleteMin / percolateDown</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">void deleteMin( )
+{
+    if( isEmpty( ) )
+        throw UnderflowException{ };
+
+    array[ 1 ] = std::move( array[ currentSize-- ] );  // เอาตัวสุดท้ายมาไว้ที่ root แล้ว size ลด 1
+    percolateDown( 1 );
+}
+
+void percolateDown( int hole )
+{
+    int child;
+    Comparable tmp = std::move( array[ hole ] );       // tmp = ค่าที่ต้องหาที่วาง
+
+    for( ; hole * 2 &lt;= currentSize; hole = child )     // ทำต่อตราบที่ hole ยังมี child ซ้าย
+    {
+        child = hole * 2;                              // เริ่มที่ left child
+
+        // ถ้ามี right child และมันเล็กกว่า left → เลือก right
+        if( child != currentSize &amp;&amp; array[ child + 1 ] &lt; array[ child ] )
+            ++child;
+
+        if( array[ child ] &lt; tmp )
+            array[ hole ] = std::move( array[ child ] ); // เลื่อน child ที่เล็กกว่าขึ้น
+        else
+            break;                                       // tmp วางได้แล้ว
+    }
+    array[ hole ] = std::move( tmp );
+}</code></pre></div>
+    <div class="callout"><strong class="t">Complexity</strong>
+      <code>deleteMin()</code> เป็น <b>O(log N)</b> ทั้งกรณีเฉลี่ยและเลวร้ายที่สุด เพราะตัวสุดท้ายที่ถูกยกขึ้นมามักมีค่าสูง จึงมักจมลงเกือบถึงล่างสุด
+    </div>
+
+    <!-- ===================== 6 ===================== -->
+    <h2 id="sim">6. Simulation: ลองเล่น Min-Heap</h2>
+    <p>ใส่ตัวเลขแล้วกด <b>Insert</b> หรือกด <b>deleteMin</b> เพื่อดูการทำงานทีละขั้น (เล่นอัตโนมัติ หรือกดย้อน/ถัดไปเอง) · ลองใส่ 14 แล้วเทียบกับตัวอย่างข้างบน · สูงสุด 15 ตัว</p>
+    <div class="sim">
+      <div class="sim-controls">
+        <input type="number" id="sim-input" placeholder="เลข" aria-label="ค่าที่จะ insert">
+        <button id="btn-insert" class="primary" type="button">Insert</button>
+        <button id="btn-delete" type="button">deleteMin</button>
+        <span class="spacer"></span>
+        <button id="btn-random" class="ghost" type="button">สุ่ม</button>
+        <button id="btn-reset" class="ghost" type="button">รีเซ็ต</button>
+        <button id="btn-clear" class="ghost" type="button">ล้าง</button>
+      </div>
+      <div id="sim-msg" class="sim-msg" aria-live="polite"></div>
+      <div id="sim-tree" class="tree"></div>
+      <div class="sim-legend">
+        <span><i style="background:var(--hole);border-color:var(--hole-stroke)"></i>hole</span>
+        <span><i style="background:var(--cmp)"></i>กำลังเทียบ</span>
+        <span><i style="background:var(--done)"></i>วางเสร็จ</span>
+      </div>
+      <div class="scroll-x"><table id="sim-arr" class="arr"></table></div>
+      <div class="sim-nav">
+        <button id="btn-prev" type="button">◀ ย้อน</button>
+        <button id="btn-play" class="primary" type="button">▶ เล่น</button>
+        <button id="btn-next" type="button">ถัดไป ▶</button>
+        <label>ช้า <input type="range" id="sim-speed" min="300" max="1800" step="100" value="1000" style="direction:rtl;vertical-align:middle"> เร็ว</label>
+      </div>
+    </div>
+
+    <!-- ===================== 7 ===================== -->
+    <h2 id="apps">7. การประยุกต์ใช้</h2>
+    <h3>7.1 Selection Problem</h3>
+    <p>โจทย์: จาก <i>N</i> ตัว ให้หาตัวที่ <i>k</i> ที่เล็กที่สุด (หรือใหญ่ที่สุด)</p>
+    <div class="scroll-x"><table class="data">
+      <tr><th>Algorithm</th><th>วิธี</th><th>เวลา</th></tr>
+      <tr><td>7A: k-th smallest</td><td style="text-align:left">อ่านข้อมูลลง array → <code>buildHeap()</code> (O(N)) → เรียก <code>deleteMin()</code> <i>k</i> ครั้ง (O(k log N))</td><td>O(N + k log N)</td></tr>
+      <tr><td>7B: k-th largest</td><td style="text-align:left">เก็บ Min-Heap ขนาด <i>k</i> ที่มี k ตัวใหญ่สุดที่เจอแล้ว · ตัวใหม่ที่ใหญ่กว่า root → แทนที่ root แล้ว percolate down</td><td>O(N log k)</td></tr>
+    </table></div>
+
+    <h3>Algorithm 7A: หาตัวที่ 3 ที่เล็กที่สุดของ [150, 80, 40, 30, 10, 70, 110]</h3>
+    <ol>
+      <li><b>buildHeap</b> จัด array ให้เป็น min-heap ในที่เดิม → <code>[10, 30, 40, 150, 80, 70, 110]</code></li>
+      <li><code>deleteMin()</code> ครั้งที่ 1 → ได้ <b>10</b> · heap = <code>[30, 80, 40, 150, 110, 70]</code></li>
+      <li><code>deleteMin()</code> ครั้งที่ 2 → ได้ <b>30</b> · heap = <code>[40, 80, 70, 150, 110]</code></li>
+      <li><code>deleteMin()</code> ครั้งที่ 3 → ได้ <b>40</b> ✔ จบ</li>
+    </ol>
+    <p><b>ผลลัพธ์:</b> ตัวที่ 3 ที่เล็กที่สุดคือ <b>40</b></p>
+
+    <h3>Algorithm 7B: หาตัวที่ 3 ที่ใหญ่ที่สุดของ [15, 20, 5, 30, 10, 25, 8]</h3>
+    <p>เก็บ Min-Heap ขนาด <i>k</i> = 3 แทน 3 ตัวที่ใหญ่ที่สุด:</p>
+    <ol>
+      <li>3 ตัวแรก <code>[15, 20, 5]</code> → build heap ได้ <code>[5, 20, 15]</code> (root = 5)</li>
+      <li>ตัว <b>30</b>: 30 &gt; root 5 → แทนที่ root แล้ว percolate down → <code>[15, 20, 30]</code> (root = 15)</li>
+      <li>ตัว <b>10</b>: 10 ≤ root 15 → ข้าม</li>
+      <li>ตัว <b>25</b>: 25 &gt; root 15 → แทนที่ root → <code>[20, 25, 30]</code> (root = 20)</li>
+      <li>ตัว <b>8</b>: 8 ≤ root 20 → ข้าม</li>
+    </ol>
+    <p><b>ผลลัพธ์:</b> root ของ heap สุดท้ายคือ <b>20</b> = ตัวที่ 3 ที่ใหญ่ที่สุด</p>
+    <div class="callout"><strong class="t">เลือกใช้อันไหน?</strong>
+      7B ใช้หน่วยความจำแค่ O(k) และเหมาะกับข้อมูลที่ไหลเข้ามาเรื่อยๆ (stream) ส่วน 7A เร็วกว่าเมื่อ <i>k</i> น้อยมากเมื่อเทียบกับ <i>N</i>
+    </div>
+
+    <h3>7.2 Discrete Event Simulation</h3>
+    <p>ในการจำลองเหตุการณ์ (เช่น ลูกค้าเข้าธนาคาร) ต้องประมวลผลเหตุการณ์ <b>ตามลำดับเวลา</b>:</p>
+    <div class="grid2">
+      <div class="step"><h4>Tick-by-Tick (ไม่มีประสิทธิภาพ)</h4>
+        <p>• เดินนาฬิกาทีละ 1 tick<br>• เช็กทุก tick ว่ามีเหตุการณ์เกิดไหม<br>• <b>ข้อเสีย:</b> เวลาทำงานขึ้นกับ <i>ขนาดของมาตราเวลา</i> ไม่ใช่จำนวนเหตุการณ์</p></div>
+      <div class="step"><h4>Event-Driven (ใช้ Priority Queue)</h4>
+        <p>• เก็บเหตุการณ์ในอนาคตใน PQ เรียงตามเวลา<br>• <code>deleteMin()</code> เอาเหตุการณ์ถัดไป แล้ว <b>กระโดดนาฬิกา</b>ไปที่เวลานั้นเลย<br>• <b>ข้อดี:</b> เวลาทำงานเป็นสัดส่วนกับ <i>จำนวนเหตุการณ์</i> เท่านั้น</p></div>
+    </div>
+    <div class="code"><div class="code-head"><span>C++ · แนวคิด event loop</span><button type="button">คัดลอก</button></div>
+<pre><code class="language-cpp">PriorityQueue&lt;Event&gt; pq;           // เรียงตาม event.time
+pq.insert( Event{ 0, ARRIVAL } );   // เหตุการณ์เริ่มต้น
+
+while( !pq.isEmpty( ) )
+{
+    Event e = pq.findMin( );
+    pq.deleteMin( );
+    clock = e.time;                 // กระโดดนาฬิกาไปที่เวลาของเหตุการณ์ทันที
+    process( e );                   // อาจ insert เหตุการณ์ใหม่ (เช่น DEPARTURE) กลับเข้า pq
+}</code></pre></div>
+
+    <!-- ===================== 8 ===================== -->
+    <h2 id="summary">8. สรุป &amp; แบบฝึกหัด</h2>
+    <div class="scroll-x"><table class="data">
+      <tr><th>หัวข้อ</th><th>สิ่งที่ต้องจำ</th></tr>
+      <tr><td>Priority Queue</td><td style="text-align:left"><code>insert</code> + <code>deleteMin</code></td></tr>
+      <tr><td>Binary Heap</td><td style="text-align:left">Complete binary tree + heap-order (parent ≤ child) เก็บใน array เริ่ม index 1</td></tr>
+      <tr><td>Index</td><td style="text-align:left">left = 2i, right = 2i+1, parent = ⌊i/2⌋</td></tr>
+      <tr><td>insert</td><td style="text-align:left">สร้าง hole ท้าย array → percolate up · O(log N) worst, O(1) เฉลี่ย</td></tr>
+      <tr><td>deleteMin</td><td style="text-align:left">ลบ root → ใช้ตัวสุดท้ายเป็น tmp → percolate down (เลือก child ที่เล็กกว่า) · O(log N)</td></tr>
+      <tr><td>buildHeap</td><td style="text-align:left">O(N)</td></tr>
+      <tr><td>Selection</td><td style="text-align:left">7A: O(N + k log N) · 7B: O(N log k)</td></tr>
+    </table></div>
+
+    <h3>แบบฝึกหัด</h3>
+    <details><summary>1) Node ที่ index 13 มี parent อยู่ index ไหน และมี child ไหม (heap มี 20 ตัว)?</summary>
+      parent = ⌊13/2⌋ = <b>6</b> · left child = 26 &gt; 20 → <b>ไม่มี child</b> (เป็น leaf)</details>
+    <details><summary>2) Insert 5 ลงใน heap <code>[13, 21, 16, 24, 31, 19, 68]</code> ผลเป็นอย่างไร?</summary>
+      hole = index 8 (parent = 4: 24) → 5 &lt; 24 เลื่อน 24 ลง · hole = 4 (parent = 2: 21) → เลื่อน 21 ลง · hole = 2 (parent = 1: 13) → เลื่อน 13 ลง · hole = 1 วาง 5 <br>
+      ผลลัพธ์: <code>[5, 13, 16, 21, 31, 19, 68, 24]</code></details>
+    <details><summary>3) ทำไมแถวสุดท้ายของ heap ที่จำนวนเป็นเลขคู่จึงต้องระวังใน percolateDown?</summary>
+      เพราะ node สุดท้ายที่เป็น parent มีลูกซ้ายตัวเดียว ถ้าไม่เช็ก <code>child != currentSize</code> จะเปรียบเทียบกับ <code>array[child + 1]</code> ซึ่งอยู่นอก heap</details>
+    <details><summary>4) ต้องการ 10 ตัวที่ใหญ่ที่สุดจากข้อมูล 1,000,000 ตัวที่ไหลเข้ามา ควรใช้อะไร?</summary>
+      Min-Heap ขนาด 10 (Algorithm 7B) → O(N log 10) และใช้หน่วยความจำเพียง 10 ช่อง</details>
+
+    <div class="pager"><a href="../index.html">← กลับหน้าแรก</a><span></span></div>
+  </article>
+</div>
+
+<footer>204252 Data Structures and Analysis · Computer Science Department</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+<script src="../assets/heap.js"></script>
+<script src="../assets/sim.js"></script>
+<script>
+  if (window.hljs) hljs.highlightAll();
+  document.querySelectorAll('.code-head button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.closest('.code').querySelector('code').innerText;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+        b.textContent = 'คัดลอกแล้ว ✔'; setTimeout(function () { b.textContent = 'คัดลอก'; }, 1500);
+      }, function () {});
+    });
+  });
+  // เน้นหัวข้อปัจจุบันใน TOC
+  var links = [].slice.call(document.querySelectorAll('.toc a'));
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (e.isIntersecting) links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article h2[id]').forEach(function (h) { io.observe(h); });
+</script>
+</body>
+</html>
